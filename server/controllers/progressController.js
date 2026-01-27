@@ -100,3 +100,51 @@ exports.getMyProgress = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+// @desc    Get analytics for all students in a course (for teachers)
+// @route   GET /api/progress/teacher/course/:courseId
+// @access  Private (Teacher only)
+exports.getTeacherCourseAnalytics = async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.courseId).populate('enrolledStudents', 'name email');
+
+        if (!course) {
+            return res.status(404).json({ success: false, message: 'Course not found' });
+        }
+
+        // Check if user is the teacher of this course
+        if (course.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+
+        const totalLessons = await Lesson.countDocuments({
+            module: { $in: await getModuleIds(req.params.courseId) }
+        });
+
+        const studentProgress = await Promise.all(course.enrolledStudents.map(async (student) => {
+            const completedCount = await Progress.countDocuments({
+                student: student._id,
+                course: course._id,
+                status: 'completed'
+            });
+
+            const percentage = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+            return {
+                studentId: student._id,
+                name: student.name,
+                email: student.email,
+                completedLessons: completedCount,
+                totalLessons,
+                percentage
+            };
+        }));
+
+        res.json({
+            success: true,
+            analytics: studentProgress
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};

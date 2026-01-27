@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom';
-import { FiClock, FiUsers, FiBookOpen, FiPlay } from 'react-icons/fi';
+import { FiClock, FiUsers, FiBookOpen, FiPlay, FiStar, FiHeart } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 const CourseCard = ({ course }) => {
     const {
@@ -12,8 +15,13 @@ const CourseCard = ({ course }) => {
         difficulty,
         teacher,
         enrolledStudents = [],
-        modules = []
+        modules = [],
+        avgRating = 0,
+        numReviews = 0
     } = course;
+
+    const { user, isAuthenticated } = useAuth();
+    const isWishlisted = user?.wishlist?.includes(_id);
 
     const getCategoryColor = (cat) => {
         const colors = {
@@ -37,6 +45,21 @@ const CourseCard = ({ course }) => {
         return badges[diff] || badges.beginner;
     };
 
+    const handleWishlistToggle = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isAuthenticated) {
+            toast.error('Please login to use wishlist');
+            return;
+        }
+        try {
+            const res = await authAPI.toggleWishlist(_id);
+            toast.success(res.data.message);
+        } catch (error) {
+            toast.error('Error updating wishlist');
+        }
+    };
+
     return (
         <Link to={`/courses/${_id}`} className="card card-hover block group">
             {/* Thumbnail */}
@@ -53,10 +76,22 @@ const CourseCard = ({ course }) => {
                         <FiBookOpen className="text-white/80" size={48} />
                     </div>
                 )}
+
                 {/* Difficulty Badge */}
                 <div className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium text-white ${getDifficultyBadge(difficulty)}`}>
                     {difficulty?.charAt(0).toUpperCase() + difficulty?.slice(1)}
                 </div>
+
+                {/* Wishlist Button */}
+                {isAuthenticated && (
+                    <button
+                        onClick={handleWishlistToggle}
+                        className={`absolute top-3 left-3 p-2 rounded-full backdrop-blur-md transition-all ${isWishlisted ? 'bg-red-500 text-white shadow-lg' : 'bg-white/20 text-white hover:bg-white/40'}`}
+                    >
+                        <FiHeart className={isWishlisted ? 'fill-white' : ''} size={16} />
+                    </button>
+                )}
+
                 {/* Play Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <div className="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform">
@@ -76,34 +111,40 @@ const CourseCard = ({ course }) => {
             </div>
 
             {/* Title */}
-            <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors">
+            <h3 className="font-semibold text-lg text-gray-900 mb-1 line-clamp-2 group-hover:text-primary-600 transition-colors">
                 {title}
             </h3>
 
-            {/* Description */}
-            <p className="text-gray-500 text-sm mb-4 line-clamp-2">
-                {description}
-            </p>
+            {/* Rating */}
+            <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-1 text-yellow-400">
+                    <FiStar size={14} className="fill-yellow-400" />
+                    <span className="text-sm font-bold text-gray-700">{avgRating > 0 ? avgRating.toFixed(1) : 'New'}</span>
+                </div>
+                {numReviews > 0 && (
+                    <span className="text-xs text-gray-400">({numReviews} reviews)</span>
+                )}
+            </div>
 
             {/* Teacher */}
             <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <span className="text-primary-600 font-medium text-sm">
-                        {teacher?.name?.charAt(0).toUpperCase() || 'T'}
+                <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center">
+                    <span className="text-primary-600 font-medium text-xs">
+                        {(teacher?.name?.charAt(0) || 'T').toUpperCase()}
                     </span>
                 </div>
-                <span className="text-sm text-gray-600">{teacher?.name || 'Teacher'}</span>
+                <span className="text-xs text-gray-600 font-medium">{teacher?.name || 'Teacher'}</span>
             </div>
 
             {/* Stats */}
-            <div className="flex items-center gap-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
+            <div className="flex items-center gap-4 pt-4 border-t border-gray-100 text-xs text-gray-500">
                 <div className="flex items-center gap-1">
                     <FiUsers size={14} />
-                    <span>{enrolledStudents?.length || 0} students</span>
+                    <span>{enrolledStudents?.length || 0} Students</span>
                 </div>
                 <div className="flex items-center gap-1">
                     <FiBookOpen size={14} />
-                    <span>{modules?.length || 0} modules</span>
+                    <span>{modules?.length || 0} Modules</span>
                 </div>
             </div>
         </Link>

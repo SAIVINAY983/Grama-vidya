@@ -127,9 +127,33 @@ exports.deleteCourse = async (req, res) => {
             await Lesson.deleteMany({ module: module._id });
         }
         await Module.deleteMany({ course: req.params.id });
+
+        // Delete related quizzes and quiz results
+        const Quiz = require('../models/Quiz');
+        const QuizResult = require('../models/QuizResult');
+        const quizzes = await Quiz.find({ course: req.params.id });
+        for (const quiz of quizzes) {
+            await QuizResult.deleteMany({ quiz: quiz._id });
+        }
+        await Quiz.deleteMany({ course: req.params.id });
+
+        // Delete progress records
+        const Progress = require('../models/Progress');
+        await Progress.deleteMany({ course: req.params.id });
+
+        // Delete community posts
+        const CommunityPost = require('../models/CommunityPost');
+        await CommunityPost.deleteMany({ course: req.params.id });
+
+        // Remove course from students' enrolledCourses
+        await User.updateMany(
+            { enrolledCourses: req.params.id },
+            { $pull: { enrolledCourses: req.params.id } }
+        );
+
         await course.deleteOne();
 
-        res.json({ success: true, message: 'Course deleted' });
+        res.json({ success: true, message: 'Course deleted and related data cleaned up' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Server error' });

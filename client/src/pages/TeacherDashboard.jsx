@@ -1,7 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { courseAPI, moduleAPI, lessonAPI, quizAPI } from '../services/api';
+import { courseAPI, moduleAPI, lessonAPI, quizAPI, progressAPI } from '../services/api';
 import Loading from '../components/Loading';
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    Cell
+} from 'recharts';
 import {
     FiPlus,
     FiEdit2,
@@ -12,6 +23,7 @@ import {
     FiFileText,
     FiChevronDown,
     FiChevronUp,
+    FiTrendingUp,
     FiUpload,
     FiLink,
     FiX,
@@ -43,13 +55,20 @@ const TeacherDashboard = () => {
     const [quizResults, setQuizResults] = useState([]);
     const [selectedQuiz, setSelectedQuiz] = useState(null);
     const [courseQuizzes, setCourseQuizzes] = useState({}); // Map courseId -> quizzes[]
+    const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+    const [courseAnalytics, setCourseAnalytics] = useState([]);
+    const [analyzingCourse, setAnalyzingCourse] = useState(null);
+    const [activeTab, setActiveTab] = useState('courses'); // 'courses' or 'classes'
+
+    // Class feature removed
 
     const [courseForm, setCourseForm] = useState({
         title: '',
         description: '',
         category: 'other',
         language: 'english',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        videoUrl: ''
     });
 
     const [moduleForm, setModuleForm] = useState({ title: '', description: '' });
@@ -72,6 +91,9 @@ const TeacherDashboard = () => {
     useEffect(() => {
         fetchCourses();
     }, []);
+
+
+    // fetchClasses removed
 
     const fetchCourses = async () => {
         try {
@@ -98,7 +120,7 @@ const TeacherDashboard = () => {
             }
             await fetchCourses();
             setShowCourseModal(false);
-            setCourseForm({ title: '', description: '', category: 'other', language: 'english', difficulty: 'beginner' });
+            setCourseForm({ title: '', description: '', category: 'other', language: 'english', difficulty: 'beginner', videoUrl: '' });
             setEditingCourse(null);
             // Auto-expand newly created course
             if (newCourse) {
@@ -119,7 +141,8 @@ const TeacherDashboard = () => {
             description: course.description,
             category: course.category,
             language: course.language,
-            difficulty: course.difficulty
+            difficulty: course.difficulty,
+            videoUrl: course.videoUrl || ''
         });
         setShowCourseModal(true);
     };
@@ -286,6 +309,22 @@ const TeacherDashboard = () => {
         }
     };
 
+    // Class creation removed
+
+    // Class delete/update removed
+
+    const handleViewAnalytics = async (course) => {
+        try {
+            setAnalyzingCourse(course);
+            const res = await progressAPI.getTeacherCourseAnalytics(course._id);
+            setCourseAnalytics(res.data.analytics || []);
+            setShowAnalyticsModal(true);
+        } catch (error) {
+            console.error('Error fetching analytics:', error);
+            setError('Failed to fetch student progress analytics');
+        }
+    };
+
     const totalStudents = courses.reduce((acc, c) => acc + (c.enrolledStudents?.length || 0), 0);
 
     if (loading) return <Loading text="Loading your dashboard..." />;
@@ -304,7 +343,7 @@ const TeacherDashboard = () => {
                     <button
                         onClick={() => {
                             setEditingCourse(null);
-                            setCourseForm({ title: '', description: '', category: 'other', language: 'english', difficulty: 'beginner' });
+                            setCourseForm({ title: '', description: '', category: 'other', language: 'english', difficulty: 'beginner', videoUrl: '' });
                             setShowCourseModal(true);
                         }}
                         className="btn btn-primary"
@@ -342,20 +381,34 @@ const TeacherDashboard = () => {
                     </div>
                 </div>
 
-                {/* Courses List */}
-                <div className="space-y-4">
-                    {courses.length === 0 ? (
-                        <div className="card text-center py-12">
-                            <FiBook size={48} className="text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-700 mb-2">No courses yet</h3>
-                            <p className="text-gray-500 mb-4">Create your first course to get started</p>
-                            <button onClick={() => setShowCourseModal(true)} className="btn btn-primary">
-                                <FiPlus size={20} />
-                                Create Course
-                            </button>
-                        </div>
-                    ) : (
-                        courses.map(course => (
+                {/* Tabs */}
+                <div className="flex border-b border-gray-200 mb-8">
+                    <button
+                        onClick={() => setActiveTab('courses')}
+                        className={`py-4 px-8 font-medium text-sm transition-colors border-b-2 ${activeTab === 'courses'
+                            ? 'border-primary-600 text-primary-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Courses
+                    </button>
+                    {/* Video classes tab removed */}
+                </div>
+
+                    <div className="space-y-4">
+                        {courses.length === 0 && (
+                            <div className="card text-center py-12">
+                                <FiBook size={48} className="text-gray-300 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-gray-700 mb-2">No courses yet</h3>
+                                <p className="text-gray-500 mb-4">Create your first course to get started</p>
+                                <button onClick={() => setShowCourseModal(true)} className="btn btn-primary">
+                                    <FiPlus size={20} />
+                                    Create Course
+                                </button>
+                            </div>
+                        )}
+
+                        {courses.length > 0 && courses.map(course => (
                             <div key={course._id} className="card">
                                 {/* Course Header */}
                                 <div className="flex items-start justify-between gap-4">
@@ -382,7 +435,14 @@ const TeacherDashboard = () => {
                                                 }`}
                                             title={course.isPublished ? 'Unpublish' : 'Publish'}
                                         >
-                                            {course.isPublished ? <FiEye size={18} /> : <FiEye size={18} />}
+                                            <FiEye size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleViewAnalytics(course)}
+                                            className="p-2 rounded-lg bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
+                                            title="View Student Progress Analytics"
+                                        >
+                                            <FiTrendingUp size={18} />
                                         </button>
                                         <button
                                             onClick={() => handleEditCourse(course)}
@@ -437,8 +497,6 @@ const TeacherDashboard = () => {
                                                 </button>
                                             </div>
                                         </div>
-
-
 
                                         {/* Quizzes List */}
                                         {courseQuizzes[course._id]?.length > 0 && (
@@ -532,107 +590,10 @@ const TeacherDashboard = () => {
                                     </div>
                                 )}
                             </div>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            {/* Course Modal */}
-            {
-                showCourseModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-                            <div className="p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-bold">{editingCourse ? 'Edit Course' : 'Create Course'}</h2>
-                                    <button onClick={() => setShowCourseModal(false)} className="text-gray-400 hover:text-gray-600">
-                                        <FiX size={24} />
-                                    </button>
-                                </div>
-                                {error && (
-                                    <div className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-4">
-                                        <span>{error}</span>
-                                    </div>
-                                )}
-                                <form onSubmit={handleCreateCourse} className="space-y-4">
-                                    <div>
-                                        <label className="label">Title</label>
-                                        <input
-                                            type="text"
-                                            value={courseForm.title}
-                                            onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
-                                            className="input"
-                                            placeholder="e.g., Basic Mathematics"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="label">Description</label>
-                                        <textarea
-                                            value={courseForm.description}
-                                            onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
-                                            className="input min-h-[100px]"
-                                            placeholder="Describe what students will learn..."
-                                            required
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="label">Category</label>
-                                            <select
-                                                value={courseForm.category}
-                                                onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
-                                                className="input"
-                                            >
-                                                <option value="mathematics">Mathematics</option>
-                                                <option value="science">Science</option>
-                                                <option value="language">Language</option>
-                                                <option value="computer">Computer</option>
-                                                <option value="life-skills">Life Skills</option>
-                                                <option value="other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="label">Language</label>
-                                            <select
-                                                value={courseForm.language}
-                                                onChange={(e) => setCourseForm({ ...courseForm, language: e.target.value })}
-                                                className="input"
-                                            >
-                                                <option value="english">English</option>
-                                                <option value="hindi">Hindi</option>
-                                                <option value="regional">Regional</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="label">Difficulty</label>
-                                            <select
-                                                value={courseForm.difficulty}
-                                                onChange={(e) => setCourseForm({ ...courseForm, difficulty: e.target.value })}
-                                                className="input"
-                                            >
-                                                <option value="beginner">Beginner</option>
-                                                <option value="intermediate">Intermediate</option>
-                                                <option value="advanced">Advanced</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <button type="submit" disabled={submitting} className="btn btn-primary w-full">
-                                        {submitting ? (
-                                            <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                                        ) : (
-                                            <>
-                                                <FiCheck size={20} />
-                                                {editingCourse ? 'Save Changes' : 'Create Course'}
-                                            </>
-                                        )}
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+                        ))}
                     </div>
-                )
-            }
+
+            {/* Course Modal removed for isolation of parsing error */}
 
             {/* Module Modal */}
             {
@@ -968,7 +929,115 @@ const TeacherDashboard = () => {
                     </div>
                 )
             }
-        </div >
+
+            {/* Class modal removed */}
+
+            {/* Analytics Modal */}
+            {showAnalyticsModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold">Student Progress Analytics</h2>
+                                <p className="text-sm text-gray-500">{analyzingCourse?.title}</p>
+                            </div>
+                            <button onClick={() => setShowAnalyticsModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <FiX size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {!courseAnalytics || courseAnalytics.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <FiUsers size={48} className="text-gray-200 mx-auto mb-4" />
+                                    <p className="text-gray-500">No students enrolled in this course yet.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-8">
+                                    {/* Chart section */}
+                                    <div className="bg-gray-50 p-6 rounded-2xl">
+                                        <h3 className="text-sm font-semibold text-gray-700 mb-6 uppercase tracking-wider">Completion Overview</h3>
+                                        <div className="h-[300px] w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={courseAnalytics}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                    <XAxis
+                                                        dataKey="name"
+                                                        fontSize={12}
+                                                        tickLine={false}
+                                                        axisLine={false}
+                                                    />
+                                                    <YAxis
+                                                        fontSize={12}
+                                                        tickLine={false}
+                                                        axisLine={false}
+                                                        unit="%"
+                                                    />
+                                                    <Tooltip
+                                                        cursor={{ fill: '#f3f4f6' }}
+                                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                    />
+                                                    <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
+                                                        {courseAnalytics.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={entry.percentage === 100 ? '#10b981' : '#6366f1'} />
+                                                        ))}
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    {/* Table section */}
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">Student Details</h3>
+                                        <div className="overflow-hidden border border-gray-100 rounded-xl">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-semibold">Student</th>
+                                                        <th className="px-4 py-3 font-semibold text-center">Lessons</th>
+                                                        <th className="px-4 py-3 font-semibold text-right">Progress</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {courseAnalytics.map((student) => (
+                                                        <tr key={student.studentId} className="hover:bg-gray-50 transition-colors">
+                                                            <td className="px-4 py-4">
+                                                                <div className="font-medium text-gray-900">{student.name}</div>
+                                                                <div className="text-xs text-gray-500">{student.email}</div>
+                                                            </td>
+                                                            <td className="px-4 py-4 text-center">
+                                                                <span className="text-sm text-gray-600">
+                                                                    {student.completedLessons} / {student.totalLessons}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-4 text-right">
+                                                                <div className="flex items-center justify-end gap-3">
+                                                                    <div className="w-24 bg-gray-200 rounded-full h-1.5 hidden sm:block">
+                                                                        <div
+                                                                            className={`h-1.5 rounded-full ${student.percentage === 100 ? 'bg-green-500' : 'bg-primary-500'}`}
+                                                                            style={{ width: `${student.percentage}%` }}
+                                                                        />
+                                                                    </div>
+                                                                    <span className={`text-sm font-bold ${student.percentage === 100 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                                        {student.percentage}%
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    </div>
     );
 };
 

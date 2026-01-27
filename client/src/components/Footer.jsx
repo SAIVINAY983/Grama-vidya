@@ -21,13 +21,13 @@ const Footer = () => {
                             Learn anytime, anywhere with our low-bandwidth platform designed for you.
                         </p>
                         <div className="flex flex-col gap-2 text-sm">
-                            <a href="mailto:support@gramvidya.com" className="flex items-center gap-2 hover:text-primary-400 transition-colors">
+                            <a href="mailto:billakantisaivinay943@gmail.com" className="flex items-center gap-2 hover:text-primary-400 transition-colors">
                                 <FiMail size={16} />
-                                support@gramvidya.com
+                                billakantisaivinay943@gmail.com
                             </a>
-                            <a href="tel:+911234567890" className="flex items-center gap-2 hover:text-primary-400 transition-colors">
+                            <a href="tel:+916304239983" className="flex items-center gap-2 hover:text-primary-400 transition-colors">
                                 <FiPhone size={16} />
-                                +91 12345 67890
+                                +91 63042 39983
                             </a>
                         </div>
                     </div>

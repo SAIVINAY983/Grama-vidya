@@ -47,6 +47,18 @@ const courseSchema = new mongoose.Schema({
     totalDuration: {
         type: Number,
         default: 0
+    },
+    videoUrl: {
+        type: String,
+        trim: true
+    },
+    avgRating: {
+        type: Number,
+        default: 0
+    },
+    numReviews: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true,

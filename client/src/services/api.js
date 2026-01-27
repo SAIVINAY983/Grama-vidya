@@ -41,7 +41,10 @@ export const authAPI = {
     register: (data) => api.post('/auth/register', data),
     login: (data) => api.post('/auth/login', data),
     getMe: () => api.get('/auth/me'),
-    updateProfile: (data) => api.put('/auth/profile', data)
+    updateProfile: (data) => api.put('/auth/profile', data),
+    toggleWishlist: (id) => api.post(`/auth/wishlist/${id}`),
+    getWishlist: () => api.get('/auth/wishlist'),
+    forgotPassword: (data) => api.post('/auth/forgot-password', data)
 };
 
 // Course API
@@ -82,6 +85,7 @@ export const lessonAPI = {
 // Progress API
 export const progressAPI = {
     getCourseProgress: (courseId) => api.get(`/progress/course/${courseId}`),
+    getTeacherCourseAnalytics: (courseId) => api.get(`/progress/teacher/course/${courseId}`),
     updateProgress: (lessonId, data) => api.post(`/progress/lesson/${lessonId}`, data),
     getMyProgress: () => api.get('/progress/my-progress')
 };
@@ -120,5 +124,19 @@ export const notificationAPI = {
     markAsRead: (id) => api.put(`/notifications/${id}/read`),
     delete: (id) => api.delete(`/notifications/${id}`)
 };
+
+// Review API
+export const reviewAPI = {
+    getByCourse: (courseId) => api.get(`/reviews/${courseId}`),
+    add: (courseId, data) => api.post(`/reviews/${courseId}`, data),
+    delete: (id) => api.delete(`/reviews/${id}`)
+};
+
+// Chatbot API
+export const chatbotAPI = {
+    sendMessage: (message) => api.post('/chatbot', { message })
+};
+
+// Class API removed — video classes feature deprecated
 
 export default api;

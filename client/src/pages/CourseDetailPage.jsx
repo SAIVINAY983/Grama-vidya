@@ -15,8 +15,12 @@ import {
     FiChevronUp,
     FiArrowLeft,
     FiLock,
-    FiHelpCircle
+    FiHelpCircle,
+    FiHeart
 } from 'react-icons/fi';
+import ReviewSection from '../components/ReviewSection';
+import { authAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 const CourseDetailPage = () => {
     const { id } = useParams();
@@ -31,6 +35,7 @@ const CourseDetailPage = () => {
     const [enrolling, setEnrolling] = useState(false);
     const [expandedModules, setExpandedModules] = useState({});
     const [quizzes, setQuizzes] = useState([]);
+    const [isWishlisted, setIsWishlisted] = useState(false);
 
     const isEnrolled = course?.enrolledStudents?.includes(user?.id) ||
         course?.enrolledStudents?.some(s => s._id === user?.id || s === user?.id);
@@ -44,7 +49,10 @@ const CourseDetailPage = () => {
             fetchProgress();
             fetchQuizzes();
         }
-    }, [isEnrolled, course]);
+        if (isAuthenticated && user?.wishlist) {
+            setIsWishlisted(user.wishlist.includes(id));
+        }
+    }, [isEnrolled, course, isAuthenticated, user]);
 
     const fetchCourse = async () => {
         try {
@@ -141,6 +149,21 @@ const CourseDetailPage = () => {
         }));
     };
 
+    const handleWishlistToggle = async () => {
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const res = await authAPI.toggleWishlist(id);
+            setIsWishlisted(res.data.isWishlisted);
+            toast.success(res.data.message);
+        } catch (error) {
+            toast.error('Error updating wishlist');
+        }
+    };
+
     const completedCount = Object.values(progress).filter(s => s === 'completed').length;
     const totalLessons = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
     const progressPercent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
@@ -203,45 +226,57 @@ const CourseDetailPage = () => {
                             </div>
                         </div>
 
-                        {/* Enroll Card */}
-                        {!isEnrolled && (
-                            <div className="lg:w-80">
-                                <div className="bg-white text-gray-900 rounded-2xl p-6 shadow-xl">
-                                    <h3 className="text-xl font-bold mb-2">Free Course</h3>
-                                    <p className="text-gray-500 mb-4">Start learning today</p>
-                                    <button
-                                        onClick={handleEnroll}
-                                        disabled={enrolling}
-                                        className="btn btn-primary w-full"
-                                    >
-                                        {enrolling ? 'Enrolling...' : 'Enroll Now - Free'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Progress Card */}
-                        {isEnrolled && (
-                            <div className="lg:w-80">
-                                <div className="bg-white text-gray-900 rounded-2xl p-6 shadow-xl">
-                                    <h3 className="text-lg font-bold mb-2">Your Progress</h3>
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="flex-1">
-                                            <div className="w-full bg-gray-200 rounded-full h-3">
-                                                <div
-                                                    className="bg-primary-500 h-3 rounded-full transition-all"
-                                                    style={{ width: `${progressPercent}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                        <span className="font-bold text-primary-600">{progressPercent}%</span>
+                        {/* Top Actions */}
+                        <div className="flex flex-col gap-4 lg:w-80">
+                            <button
+                                onClick={handleWishlistToggle}
+                                className={`btn w-full flex items-center justify-center gap-2 ${isWishlisted
+                                    ? 'bg-red-50 text-red-600 border-red-100'
+                                    : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                                    }`}
+                            >
+                                <FiHeart className={isWishlisted ? 'fill-red-600' : ''} size={20} />
+                                {isWishlisted ? 'Wishlisted' : 'Add to Wishlist'}
+                            </button>
+                            {!isEnrolled && (
+                                <div className="lg:w-80">
+                                    <div className="bg-white text-gray-900 rounded-2xl p-6 shadow-xl">
+                                        <h3 className="text-xl font-bold mb-2">Free Course</h3>
+                                        <p className="text-gray-500 mb-4">Start learning today</p>
+                                        <button
+                                            onClick={handleEnroll}
+                                            disabled={enrolling}
+                                            className="btn btn-primary w-full"
+                                        >
+                                            {enrolling ? 'Enrolling...' : 'Enroll Now - Free'}
+                                        </button>
                                     </div>
-                                    <p className="text-sm text-gray-500">
-                                        {completedCount} of {totalLessons} lessons completed
-                                    </p>
                                 </div>
-                            </div>
-                        )}
+                            )}
+
+                            {/* Progress Card */}
+                            {isEnrolled && (
+                                <div className="lg:w-80">
+                                    <div className="bg-white text-gray-900 rounded-2xl p-6 shadow-xl">
+                                        <h3 className="text-lg font-bold mb-2">Your Progress</h3>
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="flex-1">
+                                                <div className="w-full bg-gray-200 rounded-full h-3">
+                                                    <div
+                                                        className="bg-primary-500 h-3 rounded-full transition-all"
+                                                        style={{ width: `${progressPercent}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <span className="font-bold text-primary-600">{progressPercent}%</span>
+                                        </div>
+                                        <p className="text-sm text-gray-500">
+                                            {completedCount} of {totalLessons} lessons completed
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -398,9 +433,11 @@ const CourseDetailPage = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Reviews Section */}
+                <ReviewSection courseId={id} />
             </div>
         </div>
-
     );
 };
 

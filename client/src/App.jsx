@@ -3,11 +3,15 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Loading from './components/Loading';
+import { Toaster } from 'react-hot-toast';
+import { ChatProvider } from './context/ChatContext';
+import ChatWidget from './components/ChatWidget';
 
 // Pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import StudentDashboard from './pages/StudentDashboard';
@@ -15,6 +19,7 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import CommunityPage from './pages/CommunityPage';
 import QuizPage from './pages/QuizPage';
+import ChatbotPage from './pages/ChatbotPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -77,6 +82,7 @@ const AppRoutes = () => {
             <Route path="/courses" element={<Layout><CoursesPage /></Layout>} />
             <Route path="/courses/:id" element={<Layout hideFooter><CourseDetailPage /></Layout>} />
             <Route path="/community" element={<Layout><CommunityPage /></Layout>} />
+            <Route path="/chatbot" element={<Layout><ChatbotPage /></Layout>} />
             <Route path="/quiz/:id" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
 
             {/* Auth Routes */}
@@ -88,6 +94,11 @@ const AppRoutes = () => {
             <Route path="/register" element={
                 <PublicRoute>
                     <RegisterPage />
+                </PublicRoute>
+            } />
+            <Route path="/reset-password/:token" element={
+                <PublicRoute>
+                    <ResetPasswordPage />
                 </PublicRoute>
             } />
 
@@ -118,7 +129,11 @@ function App() {
     return (
         <Router>
             <AuthProvider>
-                <AppRoutes />
+                <ChatProvider>
+                    <Toaster position="top-center" reverseOrder={false} />
+                    <AppRoutes />
+                    <ChatWidget />
+                </ChatProvider>
             </AuthProvider>
         </Router>
     );

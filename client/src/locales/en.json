@@ -1,0 +1,34 @@
+{
+    "navbar": {
+        "home": "Home",
+        "courses": "Courses",
+        "community": "Community",
+        "login": "Login",
+        "register": "Register",
+        "dashboard": "Dashboard",
+        "logout": "Logout",
+        "language": "Language"
+    },
+    "landing": {
+        "heroTitle": "Empowering Rural Education",
+        "heroSubtitle": "Access quality education from anywhere. Learn, grow, and succeed with Gram Vidya.",
+        "startLearning": "Start Learning",
+        "browseCourses": "Browse Courses"
+    },
+    "dashboard": {
+        "welcome": "Welcome back",
+        "continueLearning": "Continue your learning journey",
+        "enrolledCourses": "Enrolled Courses",
+        "completedLessons": "Completed Lessons",
+        "inProgress": "In Progress",
+        "completionRate": "Completion Rate",
+        "myCourses": "My Courses",
+        "viewAll": "View All",
+        "noCourses": "No courses yet",
+        "startLearningMsg": "Start learning by enrolling in a course",
+        "browseCourses": "Browse Courses",
+        "myWishlist": "My Wishlist",
+        "recommended": "Recommended for You",
+        "seeMore": "See More"
+    }
+}

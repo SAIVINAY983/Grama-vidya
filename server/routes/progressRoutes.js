@@ -3,11 +3,13 @@ const router = express.Router();
 const {
     getCourseProgress,
     updateProgress,
-    getMyProgress
+    getMyProgress,
+    getTeacherCourseAnalytics
 } = require('../controllers/progressController');
 const { protect } = require('../middleware/auth');
 
 router.get('/course/:courseId', protect, getCourseProgress);
+router.get('/teacher/course/:courseId', protect, getTeacherCourseAnalytics);
 router.get('/my-progress', protect, getMyProgress);
 router.post('/lesson/:lessonId', protect, updateProgress);
 

@@ -5,7 +5,11 @@ const {
     register,
     login,
     getMe,
-    updateProfile
+    updateProfile,
+    toggleWishlist,
+    getWishlist,
+    forgotPassword,
+    resetPassword,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
@@ -25,7 +29,12 @@ const loginValidation = [
 // Routes
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
+router.post('/forgot-password', forgotPassword);
+router.put('/resetpassword/:resettoken', resetPassword);
+// router.post('/verify-otp', verifyOTP); // Removed verify-otp route
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
+router.post('/wishlist/:courseId', protect, toggleWishlist);
+router.get('/wishlist', protect, getWishlist);
 
 module.exports = router;

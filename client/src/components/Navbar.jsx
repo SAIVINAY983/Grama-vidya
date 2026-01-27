@@ -12,9 +12,13 @@ import {
     FiLogIn,
     FiLayout,
     FiSettings,
-    FiBell
+    FiBell,
+    FiCpu,
+    FiGlobe
 } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { notificationAPI } from '../services/api';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +26,7 @@ const Navbar = () => {
     const [notifications, setNotifications] = useState([]);
     const { user, logout, isAuthenticated, isAdmin, isTeacher } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     // Poll for notifications
     useState(() => {
@@ -68,9 +73,10 @@ const Navbar = () => {
     };
 
     const navLinks = [
-        { name: 'Home', path: '/', icon: FiHome },
-        { name: 'Courses', path: '/courses', icon: FiBook },
-        { name: 'Community', path: '/community', icon: FiUsers },
+        { name: t('navbar.home'), path: '/', icon: FiHome },
+        { name: t('navbar.courses'), path: '/courses', icon: FiBook },
+        { name: 'AI Assistant', path: '/chatbot', icon: FiCpu },
+        { name: t('navbar.community'), path: '/community', icon: FiUsers },
     ];
 
     return (
@@ -97,6 +103,7 @@ const Navbar = () => {
                                 {link.name}
                             </Link>
                         ))}
+                        <LanguageSwitcher />
                     </div>
 
                     {/* Desktop Auth Buttons */}
@@ -150,7 +157,7 @@ const Navbar = () => {
                                     className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors font-medium"
                                 >
                                     <FiLayout size={18} />
-                                    Dashboard
+                                    {t('navbar.dashboard')}
                                 </Link>
                                 <div className="flex items-center gap-3 pl-4 border-l border-gray-300">
                                     <div className="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center">
@@ -162,7 +169,7 @@ const Navbar = () => {
                                     <button
                                         onClick={handleLogout}
                                         className="p-2 text-gray-500 hover:text-red-500 transition-colors"
-                                        title="Logout"
+                                        title={t('navbar.logout')}
                                     >
                                         <FiLogOut size={20} />
                                     </button>
@@ -172,11 +179,11 @@ const Navbar = () => {
                             <>
                                 <Link to="/login" className="btn btn-outline text-sm py-2">
                                     <FiLogIn size={18} />
-                                    Login
+                                    {t('navbar.login')}
                                 </Link>
                                 <Link to="/register" className="btn btn-primary text-sm py-2">
                                     <FiUser size={18} />
-                                    Register
+                                    {t('navbar.register')}
                                 </Link>
                             </>
                         )}
@@ -215,7 +222,7 @@ const Navbar = () => {
                                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-primary-50 hover:text-primary-600 rounded-xl transition-colors font-medium"
                                     >
                                         <FiLayout size={20} />
-                                        Dashboard
+                                        {t('navbar.dashboard')}
                                     </Link>
                                     <div className="border-t border-gray-200 mt-2 pt-2">
                                         <div className="flex items-center gap-3 px-4 py-3">
@@ -234,7 +241,7 @@ const Navbar = () => {
                                             className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors font-medium w-full"
                                         >
                                             <FiLogOut size={20} />
-                                            Logout
+                                            {t('navbar.logout')}
                                         </button>
                                     </div>
                                 </>
@@ -246,7 +253,7 @@ const Navbar = () => {
                                         className="btn btn-outline w-full"
                                     >
                                         <FiLogIn size={18} />
-                                        Login
+                                        {t('navbar.login')}
                                     </Link>
                                     <Link
                                         to="/register"
@@ -254,8 +261,11 @@ const Navbar = () => {
                                         className="btn btn-primary w-full"
                                     >
                                         <FiUser size={18} />
-                                        Register
+                                        {t('navbar.register')}
                                     </Link>
+                                    <div className="mt-2">
+                                        <LanguageSwitcher />
+                                    </div>
                                 </div>
                             )}
                         </div>

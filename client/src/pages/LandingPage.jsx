@@ -7,11 +7,13 @@ import {
     FiWifi,
     FiGlobe,
     FiPlay,
-    FiCheckCircle,
     FiArrowRight
 } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 
 const LandingPage = () => {
+    const { t } = useTranslation();
+
     const features = [
         {
             icon: FiWifi,
@@ -71,7 +73,7 @@ const LandingPage = () => {
                     <div className="max-w-3xl mx-auto text-center">
                         <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-lg px-4 py-2 rounded-full mb-6">
                             <span className="w-2 h-2 bg-secondary-400 rounded-full animate-pulse"></span>
-                            <span className="text-sm font-medium">Empowering Rural Education</span>
+                            <span className="text-sm font-medium">{t('landing.heroTitle')}</span>
                         </div>
 
                         <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
@@ -81,19 +83,17 @@ const LandingPage = () => {
                         </h1>
 
                         <p className="text-lg md:text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-                            Gram Vidya brings digital education to rural India. Learn from expert teachers,
-                            watch videos, download notes, and join a community of learners – all optimized
-                            for low-bandwidth connections.
+                            {t('landing.heroSubtitle')}
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link to="/register" className="btn bg-white text-primary-700 hover:bg-gray-100 hover:shadow-xl w-full sm:w-auto">
                                 <FiPlay size={20} />
-                                Start Learning Free
+                                {t('landing.startLearning')}
                             </Link>
                             <Link to="/courses" className="btn bg-white/10 backdrop-blur text-white border border-white/20 hover:bg-white/20 w-full sm:w-auto">
                                 <FiBook size={20} />
-                                Explore Courses
+                                {t('landing.browseCourses')}
                             </Link>
                         </div>
                     </div>
