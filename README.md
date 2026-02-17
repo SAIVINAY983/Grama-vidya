@@ -160,3 +160,17 @@ MIT License - feel free to use for educational purposes.
 ---
 
 Made with ❤️ for Rural India
+
+## ☁️ Deployment (Vercel)
+
+This project is configured for deployment on [Vercel](https://vercel.com).
+
+1. Import the project in Vercel.
+2. Add the following Environment Variables:
+   - `MONGODB_URI`
+   - `JWT_SECRET`
+   - `NODE_ENV=production`
+   - `CLIENT_URL` (your Vercel app URL)
+3. Deploy!
+
+> **Note**: File uploads are not persistent on Vercel's serverless functions.
