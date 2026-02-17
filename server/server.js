@@ -118,8 +118,9 @@ const PORT = process.env.PORT || 5000;
 const httpServer = http.createServer(app);
 const io = initSocket(httpServer);
 
-httpServer.listen(PORT, () => {
-    console.log(`
+if (require.main === module) {
+    httpServer.listen(PORT, () => {
+        console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
 ║         🎓 Gram Vidya Server Started 🎓               ║
@@ -139,6 +140,7 @@ httpServer.listen(PORT, () => {
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);
-});
+    });
+}
 
 module.exports = app;
