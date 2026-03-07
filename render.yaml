@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: gram-vidya-backend
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 465
+      - key: SMTP_EMAIL
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: FROM_NAME
+        value: Gram Vidya Team
+      - key: FROM_EMAIL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CLIENT_URL
+        value: https://gram-vidya.vercel.app
