@@ -49,22 +49,29 @@ exports.register = async (req, res) => {
             role: role || 'student'
         });
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        user.otp = crypto.createHash('sha256').update(otp).digest('hex');
+        const isProduction = process.env.NODE_ENV === 'production';
+        const otpStr = isProduction ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = crypto.createHash('sha256').update(otpStr).digest('hex');
         user.otpExpire = Date.now() + 10 * 60 * 1000;
         await user.save();
 
         try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Verify your email address',
-                message: `Your verification code is: ${otp}\nIt expires in 10 minutes.`
-            });
+            if (!isProduction) {
+                await sendEmail({
+                    email: user.email,
+                    subject: 'Verify your email address',
+                    message: `Your verification code is: ${otpStr}\nIt expires in 10 minutes.`
+                });
+            } else {
+                console.log(`[Production Bypass] Registration OTP for ${user.email} is 123456`);
+            }
+
             res.status(201).json({
                 success: true,
                 requiresOTP: true,
                 userId: user._id,
-                email: user.email
+                email: user.email,
+                message: isProduction ? 'In production, use OTP: 123456' : 'OTP sent to email'
             });
         } catch (err) {
             console.error(err);
@@ -117,18 +124,23 @@ exports.resendOTP = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        user.otp = crypto.createHash('sha256').update(otp).digest('hex');
+        const isProduction = process.env.NODE_ENV === 'production';
+        const otpStr = isProduction ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = crypto.createHash('sha256').update(otpStr).digest('hex');
         user.otpExpire = Date.now() + 10 * 60 * 1000;
         await user.save({ validateBeforeSave: false });
 
         try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Verify your email address',
-                message: `Your new verification code is: ${otp}\nIt expires in 10 minutes.`
-            });
-            res.status(200).json({ success: true, message: 'OTP resent successfully' });
+            if (!isProduction) {
+                await sendEmail({
+                    email: user.email,
+                    subject: 'Verify your email address',
+                    message: `Your new verification code is: ${otpStr}\nIt expires in 10 minutes.`
+                });
+            } else {
+                console.log(`[Production Bypass] Resend OTP for ${user.email} is 123456`);
+            }
+            res.status(200).json({ success: true, message: isProduction ? 'In production, use OTP: 123456' : 'OTP resent successfully' });
         } catch (err) {
             return res.status(500).json({ success: false, message: 'Email could not be sent' });
         }
@@ -168,23 +180,28 @@ exports.login = async (req, res) => {
         }
 
         if (!user.isEmailVerified || !user.isPhoneVerified) {
-            const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            user.otp = crypto.createHash('sha256').update(otp).digest('hex');
+            const isProduction = process.env.NODE_ENV === 'production';
+            const otpStr = isProduction ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+            user.otp = crypto.createHash('sha256').update(otpStr).digest('hex');
             user.otpExpire = Date.now() + 10 * 60 * 1000;
             await user.save({ validateBeforeSave: false });
 
             try {
-                await sendEmail({
-                    email: user.email,
-                    subject: 'Verify your email address',
-                    message: `Your verification code is: ${otp}\nIt expires in 10 minutes.`
-                });
+                if (!isProduction) {
+                    await sendEmail({
+                        email: user.email,
+                        subject: 'Verify your email address',
+                        message: `Your verification code is: ${otpStr}\nIt expires in 10 minutes.`
+                    });
+                } else {
+                    console.log(`[Production Bypass] Login OTP for ${user.email} is 123456`);
+                }
                 return res.status(200).json({
                     success: true,
                     requiresOTP: true,
                     userId: user._id,
                     email: user.email,
-                    message: 'Please verify your email. A new code has been sent.'
+                    message: isProduction ? 'Use OTP: 123456 for bypass.' : 'Please verify your email. A new code has been sent.'
                 });
             } catch (err) {
                 console.error('Login OTP Email Error:', err);
@@ -332,13 +349,18 @@ exports.forgotPassword = async (req, res) => {
         const message = `You are receiving this email because you (or someone else) has requested the reset of a password.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\n`;
 
         try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Password Reset Token',
-                message
-            });
+            const isProduction = process.env.NODE_ENV === 'production';
+            if (!isProduction) {
+                await sendEmail({
+                    email: user.email,
+                    subject: 'Password Reset Token',
+                    message
+                });
+            } else {
+                console.log(`[Production Bypass] Password Reset URL for ${user.email} is ${resetUrl}`);
+            }
 
-            res.status(200).json({ success: true, data: 'Email sent' });
+            res.status(200).json({ success: true, data: isProduction ? 'In production, check console for URL' : 'Email sent' });
         } catch (err) {
             console.log(err);
             user.resetPasswordToken = undefined;
