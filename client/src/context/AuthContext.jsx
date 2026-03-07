@@ -39,6 +39,15 @@ export const AuthProvider = ({ children }) => {
             setError(null);
             const response = await authAPI.login({ email, password });
 
+            if (response.data.requiresOTP) {
+                return {
+                    success: true,
+                    requiresOTP: true,
+                    userId: response.data.userId,
+                    email: response.data.email
+                };
+            }
+
             const { token, user } = response.data;
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
@@ -55,6 +64,11 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             const response = await authAPI.register(userData);
+
+            if (response.data.requiresOTP) {
+                return { success: true, requiresOTP: true, userId: response.data.userId };
+            }
+
             const { token, user } = response.data;
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
@@ -64,6 +78,31 @@ export const AuthProvider = ({ children }) => {
             const message = err.response?.data?.message || 'Registration failed';
             setError(message);
             return { success: false, message };
+        }
+    };
+
+    const verifyOTP = async (userId, otp) => {
+        try {
+            setError(null);
+            const response = await authAPI.verifyEmail({ userId, otp });
+            const { token, user } = response.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            setUser(user);
+            return { success: true, user };
+        } catch (err) {
+            const message = err.response?.data?.message || 'Verification failed';
+            setError(message);
+            return { success: false, message };
+        }
+    };
+
+    const resendOTP = async (userId) => {
+        try {
+            await authAPI.resendOTP({ userId });
+            return { success: true };
+        } catch (err) {
+            return { success: false, message: err.response?.data?.message || 'Failed to resend' };
         }
     };
 
@@ -84,6 +123,8 @@ export const AuthProvider = ({ children }) => {
         error,
         login,
         register,
+        verifyOTP,
+        resendOTP,
         logout,
         updateUser,
         isAuthenticated: !!user,

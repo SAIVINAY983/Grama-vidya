@@ -18,12 +18,16 @@ const quizRoutes = require('./routes/quizRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const chatbotRoutes = require('./routes/chatbotRoutes');
+const classRoutes = require('./routes/classRoutes');
+const { initScheduler, sendClassReminders } = require('./utils/scheduler');
 
 // Create Express app
 const app = express();
 
-// Connect to database
-connectDB();
+// Connect to database and then start scheduler
+connectDB().then(() => {
+    initScheduler();
+});
 
 // Create upload directories if they don't exist
 const uploadDirs = ['uploads', 'uploads/videos', 'uploads/pdfs', 'uploads/thumbnails'];
@@ -56,10 +60,21 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/classes', classRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ success: true, message: 'Gram Vidya API is running' });
+});
+
+// Manual trigger for SMS reminders (admin/testing)
+app.get('/api/classes/trigger-reminders', async (req, res) => {
+    try {
+        await sendClassReminders();
+        res.json({ success: true, message: 'SMS reminder job triggered successfully' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
 // Error handling middleware

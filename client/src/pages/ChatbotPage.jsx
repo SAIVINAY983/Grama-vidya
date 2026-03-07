@@ -3,7 +3,7 @@ import { FiInfo, FiCpu, FiMessageCircle, FiBookOpen } from 'react-icons/fi';
 
 const ChatbotPage = () => {
     return (
-        <div className="bg-gray-50 min-h-[calc(100-64px)] py-12">
+        <div className="bg-gray-50 min-h-[calc(100vh-64px)] py-12">
             <div className="container-custom">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column - Intro & Info */}

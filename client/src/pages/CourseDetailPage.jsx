@@ -16,10 +16,13 @@ import {
     FiArrowLeft,
     FiLock,
     FiHelpCircle,
-    FiHeart
+    FiHeart,
+    FiPackage,
+    FiWifi
 } from 'react-icons/fi';
 import ReviewSection from '../components/ReviewSection';
 import { authAPI } from '../services/api';
+import { useSettings } from '../context/SettingsContext';
 import toast from 'react-hot-toast';
 
 const CourseDetailPage = () => {
@@ -36,6 +39,9 @@ const CourseDetailPage = () => {
     const [expandedModules, setExpandedModules] = useState({});
     const [quizzes, setQuizzes] = useState([]);
     const [isWishlisted, setIsWishlisted] = useState(false);
+    const [videoLoaded, setVideoLoaded] = useState(false);
+    const [downloading, setDownloading] = useState(false);
+    const { lowDataMode } = useSettings();
 
     const isEnrolled = course?.enrolledStudents?.includes(user?.id) ||
         course?.enrolledStudents?.some(s => s._id === user?.id || s === user?.id);
@@ -142,6 +148,15 @@ const CourseDetailPage = () => {
         }
     };
 
+    const handleLoadVideo = () => {
+        setVideoLoaded(true);
+    };
+
+    // Reset video loaded state when lesson changes
+    useEffect(() => {
+        setVideoLoaded(!lowDataMode);
+    }, [selectedLesson, lowDataMode]);
+
     const toggleModule = (moduleId) => {
         setExpandedModules(prev => ({
             ...prev,
@@ -161,6 +176,28 @@ const CourseDetailPage = () => {
             toast.success(res.data.message);
         } catch (error) {
             toast.error('Error updating wishlist');
+        }
+    };
+
+    const handleDownloadMaterials = async () => {
+        setDownloading(true);
+        try {
+            const response = await courseAPI.downloadMaterials(id);
+            const blob = new Blob([response.data], { type: 'application/zip' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const safeName = course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            link.download = `${safeName}_materials.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            toast.success('Materials downloaded successfully!');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'No PDF materials found for this course');
+        } finally {
+            setDownloading(false);
         }
     };
 
@@ -238,6 +275,28 @@ const CourseDetailPage = () => {
                                 <FiHeart className={isWishlisted ? 'fill-red-600' : ''} size={20} />
                                 {isWishlisted ? 'Wishlisted' : 'Add to Wishlist'}
                             </button>
+
+                            {/* Download Materials (offline use) */}
+                            {isEnrolled && (
+                                <button
+                                    onClick={handleDownloadMaterials}
+                                    disabled={downloading}
+                                    className="btn w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20 disabled:opacity-60"
+                                    title="Download all PDF lesson notes for offline study"
+                                >
+                                    {downloading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                            Preparing ZIP...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiPackage size={18} />
+                                            📥 Download for Offline
+                                        </>
+                                    )}
+                                </button>
+                            )}
                             {!isEnrolled && (
                                 <div className="lg:w-80">
                                     <div className="bg-white text-gray-900 rounded-2xl p-6 shadow-xl">
@@ -288,12 +347,31 @@ const CourseDetailPage = () => {
                     <div className="lg:flex-1">
                         {selectedLesson ? (
                             <div>
-                                <VideoPlayer
-                                    videoType={selectedLesson.videoType}
-                                    videoUrl={selectedLesson.videoUrl}
-                                    youtubeId={selectedLesson.youtubeId}
-                                    title={selectedLesson.title}
-                                />
+                                {videoLoaded ? (
+                                    <VideoPlayer
+                                        videoType={selectedLesson.videoType}
+                                        videoUrl={selectedLesson.videoUrl}
+                                        youtubeId={selectedLesson.youtubeId}
+                                        title={selectedLesson.title}
+                                    />
+                                ) : (
+                                    <div className="aspect-video bg-gray-900 rounded-xl flex flex-col items-center justify-center border border-gray-800 text-center p-6">
+                                        <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                                            <FiZap size={32} className="fill-current" />
+                                        </div>
+                                        <h3 className="text-white font-bold text-lg mb-2">Lite Mode is ON</h3>
+                                        <p className="text-gray-400 text-sm mb-6 max-w-xs">
+                                            We've paused video auto-loading to save your data. Click below to start the lesson.
+                                        </p>
+                                        <button
+                                            onClick={handleLoadVideo}
+                                            className="btn btn-primary flex items-center gap-2"
+                                        >
+                                            <FiPlay size={18} />
+                                            Load Video (Save Data)
+                                        </button>
+                                    </div>
+                                )}
                                 <div className="mt-4">
                                     <h2 className="text-xl font-bold text-gray-900">{selectedLesson.title}</h2>
                                     {selectedLesson.description && (

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { courseAPI, moduleAPI, lessonAPI, quizAPI, progressAPI } from '../services/api';
+import { courseAPI, moduleAPI, lessonAPI, quizAPI, progressAPI, classAPI } from '../services/api';
 import Loading from '../components/Loading';
+import ClassCard from '../components/ClassCard';
 import {
     BarChart,
     Bar,
@@ -28,7 +29,6 @@ import {
     FiLink,
     FiX,
     FiCheck,
-
     FiEye,
     FiUploadCloud,
     FiHelpCircle,
@@ -60,7 +60,18 @@ const TeacherDashboard = () => {
     const [analyzingCourse, setAnalyzingCourse] = useState(null);
     const [activeTab, setActiveTab] = useState('courses'); // 'courses' or 'classes'
 
-    // Class feature removed
+    // Class States
+    const [classes, setClasses] = useState([]);
+    const [showClassModal, setShowClassModal] = useState(false);
+    const [editingClass, setEditingClass] = useState(null);
+    const [classForm, setClassForm] = useState({
+        title: '',
+        description: '',
+        meetLink: '',
+        startTime: '',
+        duration: 60,
+        courseId: ''
+    });
 
     const [courseForm, setCourseForm] = useState({
         title: '',
@@ -90,10 +101,17 @@ const TeacherDashboard = () => {
 
     useEffect(() => {
         fetchCourses();
+        fetchClasses();
     }, []);
 
-
-    // fetchClasses removed
+    const fetchClasses = async () => {
+        try {
+            const response = await classAPI.getAllTeacher();
+            setClasses(response.data.data || []);
+        } catch (error) {
+            console.error('Error fetching classes:', error);
+        }
+    };
 
     const fetchCourses = async () => {
         try {
@@ -122,7 +140,6 @@ const TeacherDashboard = () => {
             setShowCourseModal(false);
             setCourseForm({ title: '', description: '', category: 'other', language: 'english', difficulty: 'beginner', videoUrl: '' });
             setEditingCourse(null);
-            // Auto-expand newly created course
             if (newCourse) {
                 setExpandedCourse(newCourse._id);
             }
@@ -195,7 +212,6 @@ const TeacherDashboard = () => {
         }
     };
 
-
     const fetchCourseQuizzes = async (courseId) => {
         try {
             const res = await quizAPI.getByCourse(courseId);
@@ -215,8 +231,6 @@ const TeacherDashboard = () => {
             }
         }
     };
-
-
 
     const handleCreateLesson = async (e) => {
         e.preventDefault();
@@ -309,9 +323,51 @@ const TeacherDashboard = () => {
         }
     };
 
-    // Class creation removed
+    const handleCreateClass = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError('');
+        try {
+            if (editingClass) {
+                await classAPI.update(editingClass._id, classForm);
+            } else {
+                await classAPI.create(classForm);
+            }
+            await fetchClasses();
+            setShowClassModal(false);
+            setEditingClass(null);
+            setClassForm({ title: '', description: '', meetLink: '', startTime: '', duration: 60, courseId: '' });
+        } catch (err) {
+            console.error('Error saving class:', err);
+            setError(err.response?.data?.message || 'Failed to save class.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
-    // Class delete/update removed
+    const handleEditClass = (videoClass) => {
+        setEditingClass(videoClass);
+        setClassForm({
+            title: videoClass.title,
+            description: videoClass.description,
+            meetLink: videoClass.meetLink,
+            startTime: new Date(videoClass.startTime).toISOString().slice(0, 16),
+            duration: videoClass.duration,
+            courseId: videoClass.course?._id || ''
+        });
+        setShowClassModal(true);
+    };
+
+    const handleDeleteClass = async (classId) => {
+        if (window.confirm('Are you sure you want to delete this class?')) {
+            try {
+                await classAPI.delete(classId);
+                fetchClasses();
+            } catch (error) {
+                console.error('Error deleting class:', error);
+            }
+        }
+    };
 
     const handleViewAnalytics = async (course) => {
         try {
@@ -340,17 +396,30 @@ const TeacherDashboard = () => {
                         </h1>
                         <p className="text-gray-500 mt-1">Manage your courses and content</p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setEditingCourse(null);
-                            setCourseForm({ title: '', description: '', category: 'other', language: 'english', difficulty: 'beginner', videoUrl: '' });
-                            setShowCourseModal(true);
-                        }}
-                        className="btn btn-primary"
-                    >
-                        <FiPlus size={20} />
-                        Create Course
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                setEditingClass(null);
+                                setClassForm({ title: '', description: '', meetLink: '', startTime: '', duration: 60, courseId: '' });
+                                setShowClassModal(true);
+                            }}
+                            className="btn btn-outline"
+                        >
+                            <FiVideo size={20} />
+                            Schedule Class
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditingCourse(null);
+                                setCourseForm({ title: '', description: '', category: 'other', language: 'english', difficulty: 'beginner', videoUrl: '' });
+                                setShowCourseModal(true);
+                            }}
+                            className="btn btn-primary"
+                        >
+                            <FiPlus size={20} />
+                            Create Course
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats */}
@@ -392,212 +461,364 @@ const TeacherDashboard = () => {
                     >
                         Courses
                     </button>
-                    {/* Video classes tab removed */}
+                    <button
+                        onClick={() => setActiveTab('classes')}
+                        className={`py-4 px-8 font-medium text-sm transition-colors border-b-2 ${activeTab === 'classes'
+                            ? 'border-primary-600 text-primary-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Video Classes
+                    </button>
                 </div>
 
+                {activeTab === 'classes' && (
                     <div className="space-y-4">
-                        {courses.length === 0 && (
+                        {classes.length === 0 ? (
                             <div className="card text-center py-12">
-                                <FiBook size={48} className="text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-700 mb-2">No courses yet</h3>
-                                <p className="text-gray-500 mb-4">Create your first course to get started</p>
-                                <button onClick={() => setShowCourseModal(true)} className="btn btn-primary">
-                                    <FiPlus size={20} />
-                                    Create Course
+                                <FiVideo size={48} className="text-gray-300 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-gray-700 mb-2">No video classes yet</h3>
+                                <p className="text-gray-500 mb-4">Schedule your first Google Meet session for your students</p>
+                                <button
+                                    onClick={() => setShowClassModal(true)}
+                                    className="btn btn-primary"
+                                >
+                                    <FiVideo size={20} />
+                                    Schedule Class
                                 </button>
                             </div>
+                        ) : (
+                            classes.map(videoClass => (
+                                <ClassCard
+                                    key={videoClass._id}
+                                    videoClass={videoClass}
+                                    isTeacher={true}
+                                    onEdit={handleEditClass}
+                                    onDelete={handleDeleteClass}
+                                />
+                            ))
                         )}
+                    </div>
+                )}
 
-                        {courses.length > 0 && courses.map(course => (
-                            <div key={course._id} className="card">
-                                {/* Course Header */}
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
-                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${course.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                                                }`}>
-                                                {course.isPublished ? 'Published' : 'Draft'}
-                                            </span>
-                                        </div>
-                                        <p className="text-gray-500 text-sm line-clamp-2">{course.description}</p>
-                                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                                            <span>{course.enrolledStudents?.length || 0} students</span>
-                                            <span>{course.modules?.length || 0} modules</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
+                {activeTab === 'courses' && courses.length === 0 && (
+                    <div className="card text-center py-12">
+                        <FiBook size={48} className="text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-700 mb-2">No courses yet</h3>
+                        <p className="text-gray-500 mb-4">Create your first course to get started</p>
+                        <button onClick={() => setShowCourseModal(true)} className="btn btn-primary">
+                            <FiPlus size={20} />
+                            Create Course
+                        </button>
+                    </div>
+                )}
+
+                {activeTab === 'courses' && courses.length > 0 && courses.map(course => (
+                    <div key={course._id} className="card">
+                        {/* Course Header */}
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${course.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                        {course.isPublished ? 'Published' : 'Draft'}
+                                    </span>
+                                </div>
+                                <p className="text-gray-500 text-sm line-clamp-2">{course.description}</p>
+                                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                                    <span>{course.enrolledStudents?.length || 0} students</span>
+                                    <span>{course.modules?.length || 0} modules</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => handleTogglePublish(course)}
+                                    className={`p-2 rounded-lg transition-colors ${course.isPublished
+                                        ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                    title={course.isPublished ? 'Unpublish' : 'Publish'}
+                                >
+                                    <FiEye size={18} />
+                                </button>
+                                <button
+                                    onClick={() => handleViewAnalytics(course)}
+                                    className="p-2 rounded-lg bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
+                                    title="View Student Progress Analytics"
+                                >
+                                    <FiTrendingUp size={18} />
+                                </button>
+                                <button
+                                    onClick={() => handleEditCourse(course)}
+                                    className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                                >
+                                    <FiEdit2 size={18} />
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteCourse(course._id)}
+                                    className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                                >
+                                    <FiTrash2 size={18} />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const newExpanded = expandedCourse === course._id ? null : course._id;
+                                        setExpandedCourse(newExpanded);
+                                        if (newExpanded) fetchCourseQuizzes(course._id);
+                                    }}
+                                    className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                                >
+                                    {expandedCourse === course._id ? <FiChevronUp size={18} /> : <FiChevronDown size={18} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Expanded Content - Modules */}
+                        {expandedCourse === course._id && (
+                            <div className="mt-6 pt-6 border-t border-gray-200">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h4 className="font-medium text-gray-700">Modules</h4>
+                                    <div className="flex gap-2">
                                         <button
-                                            onClick={() => handleTogglePublish(course)}
-                                            className={`p-2 rounded-lg transition-colors ${course.isPublished
-                                                ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                                }`}
-                                            title={course.isPublished ? 'Unpublish' : 'Publish'}
+                                            onClick={() => {
+                                                setSelectedCourse(course);
+                                                setShowQuizModal(true);
+                                            }}
+                                            className="btn btn-outline text-sm py-2 flex items-center gap-1"
                                         >
-                                            <FiEye size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleViewAnalytics(course)}
-                                            className="p-2 rounded-lg bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
-                                            title="View Student Progress Analytics"
-                                        >
-                                            <FiTrendingUp size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleEditCourse(course)}
-                                            className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-                                        >
-                                            <FiEdit2 size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteCourse(course._id)}
-                                            className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                                        >
-                                            <FiTrash2 size={18} />
+                                            <FiHelpCircle size={16} />
+                                            Add Quiz
                                         </button>
                                         <button
                                             onClick={() => {
-                                                const newExpanded = expandedCourse === course._id ? null : course._id;
-                                                setExpandedCourse(newExpanded);
-                                                if (newExpanded) fetchCourseQuizzes(course._id);
+                                                setSelectedCourse(course);
+                                                setShowModuleModal(true);
                                             }}
-                                            className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                                            className="btn btn-outline text-sm py-2 flex items-center gap-1"
                                         >
-                                            {expandedCourse === course._id ? <FiChevronUp size={18} /> : <FiChevronDown size={18} />}
+                                            <FiPlus size={16} />
+                                            Add Module
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Expanded Content - Modules */}
-                                {expandedCourse === course._id && (
-                                    <div className="mt-6 pt-6 border-t border-gray-200">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h4 className="font-medium text-gray-700">Modules</h4>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedCourse(course);
-                                                        setShowQuizModal(true);
-                                                    }}
-                                                    className="btn btn-outline text-sm py-2 flex items-center gap-1"
-                                                >
-                                                    <FiHelpCircle size={16} />
-                                                    Add Quiz
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedCourse(course);
-                                                        setShowModuleModal(true);
-                                                    }}
-                                                    className="btn btn-outline text-sm py-2 flex items-center gap-1"
-                                                >
-                                                    <FiPlus size={16} />
-                                                    Add Module
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Quizzes List */}
-                                        {courseQuizzes[course._id]?.length > 0 && (
-                                            <div className="mb-6 space-y-3">
-                                                <h5 className="font-medium text-gray-700 flex items-center gap-2">
-                                                    <FiHelpCircle className="text-primary-600" /> Quizzes
-                                                </h5>
-                                                {courseQuizzes[course._id].map(quiz => (
-                                                    <div key={quiz._id} className="bg-primary-50 rounded-xl p-4 flex items-center justify-between border border-primary-100">
-                                                        <div>
-                                                            <div className="font-medium text-gray-900">{quiz.title}</div>
-                                                            <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                                                                <span className="flex items-center gap-1"><FiClock size={12} /> {quiz.duration}m</span>
-                                                                <span>• {quiz.questions.length} Questions</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => handleViewResults(quiz)}
-                                                                className="text-primary-600 hover:text-primary-700 text-sm font-medium px-3 py-1 bg-white rounded-lg border border-primary-200 shadow-sm"
-                                                            >
-                                                                View Results
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteQuiz(quiz._id, course._id)}
-                                                                className="text-red-500 hover:text-red-700 p-2"
-                                                            >
-                                                                <FiTrash2 size={16} />
-                                                            </button>
-                                                        </div>
+                                {/* Quizzes List */}
+                                {courseQuizzes[course._id]?.length > 0 && (
+                                    <div className="mb-6 space-y-3">
+                                        <h5 className="font-medium text-gray-700 flex items-center gap-2">
+                                            <FiHelpCircle className="text-primary-600" /> Quizzes
+                                        </h5>
+                                        {courseQuizzes[course._id].map(quiz => (
+                                            <div key={quiz._id} className="bg-primary-50 rounded-xl p-4 flex items-center justify-between border border-primary-100">
+                                                <div>
+                                                    <div className="font-medium text-gray-900">{quiz.title}</div>
+                                                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                                                        <span className="flex items-center gap-1"><FiClock size={12} /> {quiz.duration}m</span>
+                                                        <span>• {quiz.questions.length} Questions</span>
                                                     </div>
-                                                ))}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleViewResults(quiz)}
+                                                        className="text-primary-600 hover:text-primary-700 text-sm font-medium px-3 py-1 bg-white rounded-lg border border-primary-200 shadow-sm"
+                                                    >
+                                                        View Results
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteQuiz(quiz._id, course._id)}
+                                                        className="text-red-500 hover:text-red-700 p-2"
+                                                    >
+                                                        <FiTrash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </div>
-                                        )}
-
-                                        {course.modules?.length > 0 ? (
-                                            <div className="space-y-3">
-                                                {course.modules.map((module, idx) => (
-                                                    <div key={module._id} className="bg-gray-50 rounded-xl p-4">
-                                                        <div className="flex items-center justify-between mb-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="w-6 h-6 bg-primary-100 text-primary-600 rounded-full text-sm font-medium flex items-center justify-center">
-                                                                    {idx + 1}
-                                                                </span>
-                                                                <h5 className="font-medium text-gray-800">{module.title}</h5>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setSelectedModule(module);
-                                                                        setShowLessonModal(true);
-                                                                    }}
-                                                                    className="text-xs bg-primary-100 text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-200"
-                                                                >
-                                                                    + Lesson
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDeleteModule(module._id)}
-                                                                    className="text-red-500 hover:text-red-700"
-                                                                >
-                                                                    <FiTrash2 size={16} />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Lessons */}
-                                                        {module.lessons?.length > 0 && (
-                                                            <div className="ml-8 space-y-2">
-                                                                {module.lessons.map(lesson => (
-                                                                    <div key={lesson._id} className="flex items-center justify-between bg-white rounded-lg p-3">
-                                                                        <div className="flex items-center gap-2">
-                                                                            {lesson.videoType === 'youtube' ? <FiLink size={14} className="text-red-500" /> : <FiVideo size={14} className="text-blue-500" />}
-                                                                            <span className="text-sm text-gray-700">{lesson.title}</span>
-                                                                        </div>
-                                                                        <button
-                                                                            onClick={() => handleDeleteLesson(lesson._id)}
-                                                                            className="text-red-400 hover:text-red-600"
-                                                                        >
-                                                                            <FiTrash2 size={14} />
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-gray-400 text-center py-4">No modules yet. Add your first module!</p>
-                                        )}
+                                        ))}
                                     </div>
                                 )}
+
+                                {course.modules?.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {course.modules.map((module, idx) => (
+                                            <div key={module._id} className="bg-gray-50 rounded-xl p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-6 h-6 bg-primary-100 text-primary-600 rounded-full text-sm font-medium flex items-center justify-center">
+                                                            {idx + 1}
+                                                        </span>
+                                                        <h5 className="font-medium text-gray-800">{module.title}</h5>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedModule(module);
+                                                                setShowLessonModal(true);
+                                                            }}
+                                                            className="text-xs bg-primary-100 text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-200"
+                                                        >
+                                                            + Lesson
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteModule(module._id)}
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            <FiTrash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Lessons */}
+                                                {module.lessons?.length > 0 && (
+                                                    <div className="ml-8 space-y-2">
+                                                        {module.lessons.map(lesson => (
+                                                            <div key={lesson._id} className="flex items-center justify-between bg-white rounded-lg p-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    {lesson.videoType === 'youtube' ? <FiLink size={14} className="text-red-500" /> : <FiVideo size={14} className="text-blue-500" />}
+                                                                    <span className="text-sm text-gray-700">{lesson.title}</span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleDeleteLesson(lesson._id)}
+                                                                    className="text-red-400 hover:text-red-600"
+                                                                >
+                                                                    <FiTrash2 size={14} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-400 text-center py-4">No modules yet. Add your first module!</p>
+                                )}
                             </div>
-                        ))}
+                        )}
                     </div>
+                ))}
 
-            {/* Course Modal removed for isolation of parsing error */}
+                {/* Course Modal */}
+                {showCourseModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-xl font-bold">{editingCourse ? 'Edit Course' : 'Create New Course'}</h2>
+                                    <button onClick={() => setShowCourseModal(false)} className="text-gray-400 hover:text-gray-600">
+                                        <FiX size={24} />
+                                    </button>
+                                </div>
 
-            {/* Module Modal */}
-            {
-                showModuleModal && (
+                                {error && (
+                                    <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-4">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleCreateCourse} className="space-y-6">
+                                    <div>
+                                        <label className="label">Course Title</label>
+                                        <input
+                                            type="text"
+                                            value={courseForm.title}
+                                            onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                                            className="input"
+                                            placeholder="e.g., Advanced Mathematics"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="label">Description</label>
+                                        <textarea
+                                            value={courseForm.description}
+                                            onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                                            className="input min-h-[100px]"
+                                            placeholder="Detailed description of the course content..."
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label">Category</label>
+                                            <select
+                                                value={courseForm.category}
+                                                onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+                                                className="input"
+                                            >
+                                                <option value="academic">Academic</option>
+                                                <option value="programming">Programming</option>
+                                                <option value="farming">Farming</option>
+                                                <option value="finance">Finance</option>
+                                                <option value="health">Health</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="label">Language</label>
+                                            <select
+                                                value={courseForm.language}
+                                                onChange={(e) => setCourseForm({ ...courseForm, language: e.target.value })}
+                                                className="input"
+                                            >
+                                                <option value="english">English</option>
+                                                <option value="hindi">Hindi</option>
+                                                <option value="kannada">Kannada</option>
+                                                <option value="telugu">Telugu</option>
+                                                <option value="tamil">Tamil</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label">Difficulty Level</label>
+                                            <select
+                                                value={courseForm.difficulty}
+                                                onChange={(e) => setCourseForm({ ...courseForm, difficulty: e.target.value })}
+                                                className="input"
+                                            >
+                                                <option value="beginner">Beginner</option>
+                                                <option value="intermediate">Intermediate</option>
+                                                <option value="advanced">Advanced</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="label">Thumbnail/Preview Video URL (Optional)</label>
+                                            <input
+                                                type="url"
+                                                value={courseForm.videoUrl}
+                                                onChange={(e) => setCourseForm({ ...courseForm, videoUrl: e.target.value })}
+                                                className="input"
+                                                placeholder="https://..."
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4 border-t">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCourseModal(false)}
+                                            className="flex-1 btn btn-outline"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className="flex-1 btn btn-primary"
+                                        >
+                                            {submitting ? 'Saving...' : (editingCourse ? 'Update Course' : 'Create Course')}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Module Modal */}
+                {showModuleModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-2xl max-w-md w-full">
                             <div className="p-6">
@@ -642,12 +863,10 @@ const TeacherDashboard = () => {
                             </div>
                         </div>
                     </div>
-                )
-            }
+                )}
 
-            {/* Lesson Modal */}
-            {
-                showLessonModal && (
+                {/* Lesson Modal */}
+                {showLessonModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-2xl max-w-md w-full">
                             <div className="p-6">
@@ -675,8 +894,7 @@ const TeacherDashboard = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setLessonForm({ ...lessonForm, videoType: 'youtube' })}
-                                                className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 ${lessonForm.videoType === 'youtube' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600'
-                                                    }`}
+                                                className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 ${lessonForm.videoType === 'youtube' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600'}`}
                                             >
                                                 <FiLink size={20} className={lessonForm.videoType === 'youtube' ? 'text-red-500' : 'text-gray-400'} />
                                                 <span className="text-sm font-medium">YouTube</span>
@@ -684,8 +902,7 @@ const TeacherDashboard = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setLessonForm({ ...lessonForm, videoType: 'upload' })}
-                                                className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 ${lessonForm.videoType === 'upload' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600'
-                                                    }`}
+                                                className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 ${lessonForm.videoType === 'upload' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600'}`}
                                             >
                                                 <FiUploadCloud size={20} className={lessonForm.videoType === 'upload' ? 'text-blue-500' : 'text-gray-400'} />
                                                 <span className="text-sm font-medium">Upload</span>
@@ -693,8 +910,7 @@ const TeacherDashboard = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setLessonForm({ ...lessonForm, videoType: 'none' })}
-                                                className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 ${lessonForm.videoType === 'none' ? 'border-gray-500 bg-gray-50 text-gray-700' : 'border-gray-200 text-gray-600'
-                                                    }`}
+                                                className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 ${lessonForm.videoType === 'none' ? 'border-gray-500 bg-gray-50 text-gray-700' : 'border-gray-200 text-gray-600'}`}
                                             >
                                                 <FiFileText size={20} className={lessonForm.videoType === 'none' ? 'text-gray-500' : 'text-gray-400'} />
                                                 <span className="text-sm font-medium">None</span>
@@ -759,11 +975,10 @@ const TeacherDashboard = () => {
                             </div>
                         </div>
                     </div>
-                )
-            }
-            {/* Quiz Modal */}
-            {
-                showQuizModal && (
+                )}
+
+                {/* Quiz Modal */}
+                {showQuizModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                             <div className="p-6">
@@ -879,12 +1094,10 @@ const TeacherDashboard = () => {
                             </div>
                         </div>
                     </div>
-                )
-            }
+                )}
 
-            {/* Quiz Results Modal */}
-            {
-                showResultsModal && (
+                {/* Quiz Results Modal */}
+                {showResultsModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                             <div className="p-6">
@@ -927,117 +1140,225 @@ const TeacherDashboard = () => {
                             </div>
                         </div>
                     </div>
-                )
-            }
+                )}
 
-            {/* Class modal removed */}
-
-            {/* Analytics Modal */}
-            {showAnalyticsModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-xl font-bold">Student Progress Analytics</h2>
-                                <p className="text-sm text-gray-500">{analyzingCourse?.title}</p>
+                {/* Analytics Modal */}
+                {showAnalyticsModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-xl font-bold">Student Progress Analytics</h2>
+                                    <p className="text-sm text-gray-500">{analyzingCourse?.title}</p>
+                                </div>
+                                <button onClick={() => setShowAnalyticsModal(false)} className="text-gray-400 hover:text-gray-600">
+                                    <FiX size={24} />
+                                </button>
                             </div>
-                            <button onClick={() => setShowAnalyticsModal(false)} className="text-gray-400 hover:text-gray-600">
-                                <FiX size={24} />
-                            </button>
-                        </div>
 
-                        <div className="p-6 overflow-y-auto flex-1">
-                            {!courseAnalytics || courseAnalytics.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <FiUsers size={48} className="text-gray-200 mx-auto mb-4" />
-                                    <p className="text-gray-500">No students enrolled in this course yet.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-8">
-                                    {/* Chart section */}
-                                    <div className="bg-gray-50 p-6 rounded-2xl">
-                                        <h3 className="text-sm font-semibold text-gray-700 mb-6 uppercase tracking-wider">Completion Overview</h3>
-                                        <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={courseAnalytics}>
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                                    <XAxis
-                                                        dataKey="name"
-                                                        fontSize={12}
-                                                        tickLine={false}
-                                                        axisLine={false}
-                                                    />
-                                                    <YAxis
-                                                        fontSize={12}
-                                                        tickLine={false}
-                                                        axisLine={false}
-                                                        unit="%"
-                                                    />
-                                                    <Tooltip
-                                                        cursor={{ fill: '#f3f4f6' }}
-                                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                                    />
-                                                    <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
-                                                        {courseAnalytics.map((entry, index) => (
-                                                            <Cell key={`cell-${index}`} fill={entry.percentage === 100 ? '#10b981' : '#6366f1'} />
-                                                        ))}
-                                                    </Bar>
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
+                            <div className="p-6 overflow-y-auto flex-1">
+                                {!courseAnalytics || courseAnalytics.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <FiUsers size={48} className="text-gray-200 mx-auto mb-4" />
+                                        <p className="text-gray-500">No students enrolled in this course yet.</p>
                                     </div>
+                                ) : (
+                                    <div className="space-y-8">
+                                        {/* Chart section */}
+                                        <div className="bg-gray-50 p-6 rounded-2xl">
+                                            <h3 className="text-sm font-semibold text-gray-700 mb-6 uppercase tracking-wider">Completion Overview</h3>
+                                            <div className="h-[300px] w-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={courseAnalytics}>
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                        <XAxis
+                                                            dataKey="name"
+                                                            fontSize={12}
+                                                            tickLine={false}
+                                                            axisLine={false}
+                                                        />
+                                                        <YAxis
+                                                            fontSize={12}
+                                                            tickLine={false}
+                                                            axisLine={false}
+                                                            unit="%"
+                                                        />
+                                                        <Tooltip
+                                                            cursor={{ fill: '#f3f4f6' }}
+                                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                        />
+                                                        <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
+                                                            {courseAnalytics.map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={entry.percentage === 100 ? '#10b981' : '#6366f1'} />
+                                                            ))}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
 
-                                    {/* Table section */}
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">Student Details</h3>
-                                        <div className="overflow-hidden border border-gray-100 rounded-xl">
-                                            <table className="w-full text-left">
-                                                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                                                    <tr>
-                                                        <th className="px-4 py-3 font-semibold">Student</th>
-                                                        <th className="px-4 py-3 font-semibold text-center">Lessons</th>
-                                                        <th className="px-4 py-3 font-semibold text-right">Progress</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {courseAnalytics.map((student) => (
-                                                        <tr key={student.studentId} className="hover:bg-gray-50 transition-colors">
-                                                            <td className="px-4 py-4">
-                                                                <div className="font-medium text-gray-900">{student.name}</div>
-                                                                <div className="text-xs text-gray-500">{student.email}</div>
-                                                            </td>
-                                                            <td className="px-4 py-4 text-center">
-                                                                <span className="text-sm text-gray-600">
-                                                                    {student.completedLessons} / {student.totalLessons}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-4 text-right">
-                                                                <div className="flex items-center justify-end gap-3">
-                                                                    <div className="w-24 bg-gray-200 rounded-full h-1.5 hidden sm:block">
-                                                                        <div
-                                                                            className={`h-1.5 rounded-full ${student.percentage === 100 ? 'bg-green-500' : 'bg-primary-500'}`}
-                                                                            style={{ width: `${student.percentage}%` }}
-                                                                        />
-                                                                    </div>
-                                                                    <span className={`text-sm font-bold ${student.percentage === 100 ? 'text-green-600' : 'text-gray-900'}`}>
-                                                                        {student.percentage}%
-                                                                    </span>
-                                                                </div>
-                                                            </td>
+                                        {/* Table section */}
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">Student Details</h3>
+                                            <div className="overflow-hidden border border-gray-100 rounded-xl">
+                                                <table className="w-full text-left">
+                                                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                                                        <tr>
+                                                            <th className="px-4 py-3 font-semibold">Student</th>
+                                                            <th className="px-4 py-3 font-semibold text-center">Lessons</th>
+                                                            <th className="px-4 py-3 font-semibold text-right">Progress</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100">
+                                                        {courseAnalytics.map((student) => (
+                                                            <tr key={student.studentId} className="hover:bg-gray-50 transition-colors">
+                                                                <td className="px-4 py-4">
+                                                                    <div className="font-medium text-gray-900">{student.name}</div>
+                                                                    <div className="text-xs text-gray-500">{student.email}</div>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-center">
+                                                                    <span className="text-sm text-gray-600">
+                                                                        {student.completedLessons} / {student.totalLessons}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right">
+                                                                    <div className="flex items-center justify-end gap-3">
+                                                                        <div className="w-24 bg-gray-200 rounded-full h-1.5 hidden sm:block">
+                                                                            <div
+                                                                                className={`h-1.5 rounded-full ${student.percentage === 100 ? 'bg-green-500' : 'bg-primary-500'}`}
+                                                                                style={{ width: `${student.percentage}%` }}
+                                                                            />
+                                                                        </div>
+                                                                        <span className={`text-sm font-bold ${student.percentage === 100 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                                            {student.percentage}%
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+
+                {/* Class Modal */}
+                {showClassModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl max-w-lg w-full">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-xl font-bold">{editingClass ? 'Edit Video Class' : 'Schedule Video Class'}</h2>
+                                    <button onClick={() => setShowClassModal(false)} className="text-gray-400 hover:text-gray-600">
+                                        <FiX size={24} />
+                                    </button>
+                                </div>
+
+                                {error && (
+                                    <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-4 text-sm">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleCreateClass} className="space-y-4">
+                                    <div>
+                                        <label className="label">Class Title</label>
+                                        <input
+                                            type="text"
+                                            value={classForm.title}
+                                            onChange={(e) => setClassForm({ ...classForm, title: e.target.value })}
+                                            className="input"
+                                            placeholder="e.g., Live Doubt Clearing Session"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label">Course</label>
+                                        <select
+                                            value={classForm.courseId}
+                                            onChange={(e) => setClassForm({ ...classForm, courseId: e.target.value })}
+                                            className="input"
+                                            required
+                                        >
+                                            <option value="">Select a course</option>
+                                            {courses.map(course => (
+                                                <option key={course._id} value={course._id}>{course.title}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="label">Google Meet Link</label>
+                                        <input
+                                            type="url"
+                                            value={classForm.meetLink}
+                                            onChange={(e) => setClassForm({ ...classForm, meetLink: e.target.value })}
+                                            className="input"
+                                            placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label">Start Time</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={classForm.startTime}
+                                                onChange={(e) => setClassForm({ ...classForm, startTime: e.target.value })}
+                                                className="input text-sm"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label">Duration (min)</label>
+                                            <input
+                                                type="number"
+                                                value={classForm.duration}
+                                                onChange={(e) => setClassForm({ ...classForm, duration: e.target.value })}
+                                                className="input"
+                                                min="15"
+                                                max="300"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="label">Description</label>
+                                        <textarea
+                                            value={classForm.description}
+                                            onChange={(e) => setClassForm({ ...classForm, description: e.target.value })}
+                                            className="input min-h-[80px]"
+                                            placeholder="What will be covered in this session?"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex gap-3 pt-4 border-t mt-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowClassModal(false)}
+                                            className="flex-1 btn btn-outline"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className="flex-1 btn btn-primary"
+                                        >
+                                            {submitting ? 'Saving...' : (editingClass ? 'Update Class' : 'Schedule Class')}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
-    </div>
     );
 };
 

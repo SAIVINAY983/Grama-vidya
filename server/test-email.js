@@ -1,33 +1,25 @@
-require('dotenv').config();
+const dotenv = require('dotenv');
+const path = require('path');
+dotenv.config({ path: path.join(__dirname, '.env') });
 const sendEmail = require('./utils/sendEmail');
 
-const testEmail = async () => {
-    console.log('Attempting to send test email...');
-    console.log('SMTP Config:', {
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
-        user: process.env.SMTP_EMAIL,
-        from: process.env.FROM_EMAIL
-    });
+async function test() {
+    console.log('Testing email send with:');
+    console.log('SMTP_EMAIL:', process.env.SMTP_EMAIL);
+    console.log('SMTP_HOST:', process.env.SMTP_HOST);
+    console.log('SMTP_PORT:', process.env.SMTP_PORT);
 
     try {
         await sendEmail({
-            email: process.env.SMTP_EMAIL, // Send to self
-            subject: 'Test Email from Gram Vidya Debugger',
-            message: 'If you are reading this, the email configuration is CORRECT.'
+            email: process.env.SMTP_EMAIL,
+            subject: 'Test Email Verification',
+            message: 'This is a test to verify Nodemailer is working.'
         });
-        console.log('✅ Email sent successfully!');
-    } catch (error) {
-        console.error('❌ Email failed to send.');
-        console.error('Error Name:', error.name);
-        console.error('Error Message:', error.message);
-        if (error.response) {
-            console.error('SMTP Response:', error.response);
-        }
-        if (error.code) {
-            console.error('Error Code:', error.code);
-        }
+        console.log('SUCCESS: Email sent successfully!');
+    } catch (err) {
+        console.error('FAILED: Could not send email.');
+        console.error(err);
     }
-};
+}
 
-testEmail();
+test();

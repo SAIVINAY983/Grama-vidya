@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiMail, FiLock, FiLogIn, FiAlertCircle } from 'react-icons/fi';
+import { FiMail, FiLock, FiLogIn, FiAlertCircle, FiEye, FiEyeOff } from 'react-icons/fi';
 import { authAPI } from '../services/api';
 
 const LoginPage = () => {
@@ -9,16 +9,32 @@ const LoginPage = () => {
         email: '',
         password: ''
     });
+    const [rememberMe, setRememberMe] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showForgotModal, setShowForgotModal] = useState(false);
     const [forgotEmail, setForgotEmail] = useState('');
     const [forgotLoading, setForgotLoading] = useState(false);
     const [forgotMessage, setForgotMessage] = useState('');
-    
 
-    const { login } = useAuth();
+    // OTP State
+    const [showOTP, setShowOTP] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [userId, setUserId] = useState('');
+    const [userEmail, setUserEmail] = useState('');
+    const { login, verifyOTP, resendOTP } = useAuth();
     const navigate = useNavigate();
+
+    // Load saved credentials on mount
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('gv_saved_email');
+        const savedPassword = localStorage.getItem('gv_saved_password');
+        if (savedEmail && savedPassword) {
+            setFormData({ email: savedEmail, password: savedPassword });
+            setRememberMe(true);
+        }
+    }, []);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,7 +48,19 @@ const LoginPage = () => {
 
         const result = await login(formData.email, formData.password);
 
-        if (result.success) {
+        if (result.success && result.requiresOTP) {
+            setUserId(result.userId);
+            setUserEmail(result.email);
+            setShowOTP(true);
+        } else if (result.success) {
+            // Save or clear credentials based on Remember Me
+            if (rememberMe) {
+                localStorage.setItem('gv_saved_email', formData.email);
+                localStorage.setItem('gv_saved_password', formData.password);
+            } else {
+                localStorage.removeItem('gv_saved_email');
+                localStorage.removeItem('gv_saved_password');
+            }
             const role = result.user.role;
             if (role === 'admin') navigate('/admin');
             else if (role === 'teacher') navigate('/teacher');
@@ -44,7 +72,34 @@ const LoginPage = () => {
         setLoading(false);
     };
 
-    
+    const handleVerify = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        const result = await verifyOTP(userId, otp);
+        if (result.success) {
+            const role = result.user.role;
+            if (role === 'admin') navigate('/admin');
+            else if (role === 'teacher') navigate('/teacher');
+            else navigate('/student');
+        } else {
+            setError(result.message);
+        }
+        setLoading(false);
+    };
+
+    const handleResend = async () => {
+        setError('');
+        const result = await resendOTP(userId);
+        if (result.success) {
+            alert('A new verification code has been sent to your email!');
+        } else {
+            setError(result.message);
+        }
+    };
+
+
 
     // Demo credentials for quick login
     const demoCredentials = [
@@ -81,6 +136,70 @@ const LoginPage = () => {
                         </div>
                     )}
 
+                    {showOTP ? (
+                        <div className="space-y-6">
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FiMail size={32} />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900 mb-2">Verify Your Account</h2>
+                                <p className="text-gray-500 text-sm">
+                                    Please enter the verification code sent to
+                                    <br />
+                                    <span className="font-semibold text-gray-900">{userEmail}</span>
+                                </p>
+                            </div>
+
+                            <form onSubmit={handleVerify} className="space-y-5">
+                                <div>
+                                    <label className="label text-center">Enter Verification Code</label>
+                                    <input
+                                        type="text"
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                        className="input text-center text-2xl tracking-[0.5em] font-mono h-14"
+                                        placeholder="000000"
+                                        maxLength="6"
+                                        required
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={loading || otp.length !== 6}
+                                    className="btn btn-primary w-full"
+                                >
+                                    {loading ? (
+                                        <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                                    ) : (
+                                        'Verify Account'
+                                    )}
+                                </button>
+                                <p className="text-center text-xs text-gray-400 mt-2">
+                                    Please enter the 6-digit code to enable the button
+                                </p>
+                            </form>
+
+                            <div className="text-center mt-6">
+                                <p className="text-gray-500 text-sm">
+                                    Didn't receive the code?{' '}
+                                    <button
+                                        type="button"
+                                        onClick={handleResend}
+                                        className="text-primary-600 hover:text-primary-700 font-medium"
+                                    >
+                                        Resend Code
+                                    </button>
+                                </p>
+                                <button
+                                    onClick={() => setShowOTP(false)}
+                                    className="mt-4 text-sm text-gray-500 hover:text-gray-700"
+                                >
+                                    Back to Login
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
                         <>
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div>
@@ -104,16 +223,34 @@ const LoginPage = () => {
                                     <div className="relative">
                                         <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                         <input
-                                            type="password"
+                                            type={showPassword ? 'text' : 'password'}
                                             name="password"
                                             value={formData.password}
                                             onChange={handleChange}
-                                            className="input pl-12"
+                                            className="input pl-12 pr-12"
                                             placeholder="Enter your password"
                                             required
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                            tabIndex={-1}
+                                        >
+                                            {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                                        </button>
                                     </div>
-                                    <div className="text-right mt-2">
+                                    <div className="flex items-center justify-between mt-3">
+                                        {/* Remember Me */}
+                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={rememberMe}
+                                                onChange={(e) => setRememberMe(e.target.checked)}
+                                                className="w-4 h-4 rounded accent-primary-600 cursor-pointer"
+                                            />
+                                            <span className="text-sm text-gray-600">Remember me</span>
+                                        </label>
                                         <button type="button" onClick={() => setShowForgotModal(true)} className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                                             Forgot password?
                                         </button>
@@ -145,6 +282,7 @@ const LoginPage = () => {
                                 </p>
                             </div>
                         </>
+                    )}
 
                     {/* Forgot Password Modal */}
                     {showForgotModal && (

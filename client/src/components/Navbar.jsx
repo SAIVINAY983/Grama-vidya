@@ -14,9 +14,13 @@ import {
     FiSettings,
     FiBell,
     FiCpu,
-    FiGlobe
+    FiGlobe,
+    FiZap,
+    FiMoon,
+    FiSun
 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
+import { useSettings } from '../context/SettingsContext';
 import { notificationAPI } from '../services/api';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -25,6 +29,7 @@ const Navbar = () => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const { user, logout, isAuthenticated, isAdmin, isTeacher } = useAuth();
+    const { lowDataMode, toggleLowDataMode, darkMode, toggleDarkMode } = useSettings();
     const navigate = useNavigate();
     const { t } = useTranslation();
 
@@ -80,7 +85,7 @@ const Navbar = () => {
     ];
 
     return (
-        <nav className="glass sticky top-0 z-50 border-b border-gray-200">
+        <nav className="glass sticky top-0 z-50 border-b border-gray-200 dark:border-slate-800">
             <div className="container-custom">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -88,7 +93,7 @@ const Navbar = () => {
                         <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
                             <span className="text-white font-bold text-xl">G</span>
                         </div>
-                        <span className="font-bold text-xl text-gray-900">Gram Vidya</span>
+                        <span className="font-bold text-xl text-gray-900 dark:text-white">Gram Vidya</span>
                     </Link>
 
                     {/* Desktop Navigation */}
@@ -97,13 +102,39 @@ const Navbar = () => {
                             <Link
                                 key={link.path}
                                 to={link.path}
-                                className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors font-medium"
+                                className="flex items-center gap-2 text-gray-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
                             >
                                 <link.icon size={18} />
                                 {link.name}
                             </Link>
                         ))}
                         <LanguageSwitcher />
+                        <button
+                            onClick={toggleLowDataMode}
+                            style={{
+                                background: lowDataMode ? '#fef3c7' : '#f3f4f6',
+                                color: lowDataMode ? '#b45309' : '#4b5563',
+                                border: lowDataMode ? '1px solid #fde68a' : '1px solid #e5e7eb'
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer"
+                            title={lowDataMode ? 'Disable Lite Mode' : 'Enable Lite Mode'}
+                        >
+                            <FiZap size={14} style={{ fill: lowDataMode ? '#b45309' : 'none', color: lowDataMode ? '#b45309' : '#4b5563' }} />
+                            {lowDataMode ? '⚡ Lite Mode ON' : '⚡ Lite Mode'}
+                        </button>
+                        {/* Dark Mode Toggle */}
+                        <button
+                            onClick={toggleDarkMode}
+                            style={{
+                                background: darkMode ? '#1e293b' : '#f3f4f6',
+                                color: darkMode ? '#fbbf24' : '#4b5563',
+                                border: darkMode ? '1px solid #334155' : '1px solid #e5e7eb'
+                            }}
+                            className="p-2 rounded-full transition-all cursor-pointer"
+                            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                        >
+                            {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
+                        </button>
                     </div>
 
                     {/* Desktop Auth Buttons */}
@@ -213,6 +244,31 @@ const Navbar = () => {
                                     {link.name}
                                 </Link>
                             ))}
+
+                            <button
+                                onClick={toggleLowDataMode}
+                                style={{
+                                    background: lowDataMode ? '#fef3c7' : '#f3f4f6',
+                                    color: lowDataMode ? '#b45309' : '#4b5563'
+                                }}
+                                className="flex items-center gap-3 px-4 py-3 mx-4 my-1 rounded-xl transition-colors font-bold text-sm w-full cursor-pointer"
+                            >
+                                <FiZap size={20} style={{ fill: lowDataMode ? '#b45309' : 'none', color: lowDataMode ? '#b45309' : '#4b5563' }} />
+                                {lowDataMode ? '⚡ Lite Mode: Active' : '⚡ Lite Mode: Off'}
+                            </button>
+
+                            <button
+                                onClick={toggleDarkMode}
+                                style={{
+                                    background: darkMode ? '#1e293b' : '#f3f4f6',
+                                    color: darkMode ? '#fbbf24' : '#4b5563',
+                                    border: darkMode ? '1px solid #334155' : '1px solid #e5e7eb'
+                                }}
+                                className="flex items-center gap-3 px-4 py-3 mx-4 my-1 rounded-xl transition-colors font-bold text-sm w-full cursor-pointer"
+                            >
+                                {darkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
+                                {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+                            </button>
 
                             {isAuthenticated ? (
                                 <>

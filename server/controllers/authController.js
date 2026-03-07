@@ -24,11 +24,19 @@ exports.register = async (req, res) => {
         const { name, email, phone, password, role } = req.body;
 
         // Check if user exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
+        const existingEmail = await User.findOne({ email });
+        if (existingEmail) {
             return res.status(400).json({
                 success: false,
-                message: 'User already exists with this email'
+                message: 'This email is already registered. Please go to the Login page and sign in.'
+            });
+        }
+
+        const existingPhone = await User.findOne({ phone });
+        if (existingPhone) {
+            return res.status(400).json({
+                success: false,
+                message: 'This mobile number is already registered. Please use a different number or sign in.'
             });
         }
 
@@ -41,24 +49,91 @@ exports.register = async (req, res) => {
             role: role || 'student'
         });
 
-        const token = generateToken(user._id);
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = crypto.createHash('sha256').update(otp).digest('hex');
+        user.otpExpire = Date.now() + 10 * 60 * 1000;
+        await user.save();
 
-        res.status(201).json({
-            success: true,
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
+        try {
+            await sendEmail({
                 email: user.email,
-                role: user.role
-            }
-        });
+                subject: 'Verify your email address',
+                message: `Your verification code is: ${otp}\nIt expires in 10 minutes.`
+            });
+            res.status(201).json({
+                success: true,
+                requiresOTP: true,
+                userId: user._id,
+                email: user.email
+            });
+        } catch (err) {
+            console.error(err);
+            user.otp = undefined;
+            user.otpExpire = undefined;
+            await user.save();
+            return res.status(500).json({ success: false, message: 'Email could not be sent' });
+        }
     } catch (error) {
         console.error(error);
         res.status(500).json({
             success: false,
             message: 'Server error'
         });
+    }
+};
+
+exports.verifyEmail = async (req, res) => {
+    try {
+        const { userId, otp } = req.body;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        const hashedOTP = crypto.createHash('sha256').update(otp).digest('hex');
+
+
+        if (user.otp !== hashedOTP) return res.status(400).json({ success: false, message: 'Invalid verification code' });
+        if (user.otpExpire < Date.now()) return res.status(400).json({ success: false, message: 'Verification code has expired' });
+
+        user.isEmailVerified = true;
+        user.isPhoneVerified = true;
+        user.otp = undefined;
+        user.otpExpire = undefined;
+        await user.save({ validateBeforeSave: false });
+
+        const token = generateToken(user._id);
+        res.json({
+            success: true,
+            token,
+            user: { id: user._id, name: user.name, email: user.email, role: user.role }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+exports.resendOTP = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = crypto.createHash('sha256').update(otp).digest('hex');
+        user.otpExpire = Date.now() + 10 * 60 * 1000;
+        await user.save({ validateBeforeSave: false });
+
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'Verify your email address',
+                message: `Your new verification code is: ${otp}\nIt expires in 10 minutes.`
+            });
+            res.status(200).json({ success: true, message: 'OTP resent successfully' });
+        } catch (err) {
+            return res.status(500).json({ success: false, message: 'Email could not be sent' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
@@ -90,6 +165,34 @@ exports.login = async (req, res) => {
                 success: false,
                 message: 'Invalid credentials'
             });
+        }
+
+        if (!user.isEmailVerified || !user.isPhoneVerified) {
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            user.otp = crypto.createHash('sha256').update(otp).digest('hex');
+            user.otpExpire = Date.now() + 10 * 60 * 1000;
+            await user.save({ validateBeforeSave: false });
+
+            try {
+                await sendEmail({
+                    email: user.email,
+                    subject: 'Verify your email address',
+                    message: `Your verification code is: ${otp}\nIt expires in 10 minutes.`
+                });
+                return res.status(200).json({
+                    success: true,
+                    requiresOTP: true,
+                    userId: user._id,
+                    email: user.email,
+                    message: 'Please verify your email. A new code has been sent.'
+                });
+            } catch (err) {
+                console.error('Login OTP Email Error:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Email could not be sent'
+                });
+            }
         }
 
         // Previously teachers required an OTP to login. OTP flow removed: continue with normal login.
@@ -196,6 +299,10 @@ exports.getWishlist = async (req, res) => {
             populate: { path: 'teacher', select: 'name' }
         });
 
+        res.json({
+            success: true,
+            wishlist: user.wishlist
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -218,10 +325,11 @@ exports.forgotPassword = async (req, res) => {
 
         await user.save({ validateBeforeSave: false });
 
-        // Create reset URL
-        const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
+        // Create reset URL targeting the frontend client
+        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        const resetUrl = `${clientUrl}/reset-password/${resetToken}`;
 
-        const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
+        const message = `You are receiving this email because you (or someone else) has requested the reset of a password.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\n`;
 
         try {
             await sendEmail({

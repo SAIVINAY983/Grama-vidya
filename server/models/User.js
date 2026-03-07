@@ -18,7 +18,9 @@ const userSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        maxlength: [15, 'Phone number cannot be longer than 15 characters']
+        required: [true, 'Please add a mobile number'],
+        unique: true,
+        match: [/^[0-9]{10}$/, 'Please add a valid 10-digit mobile number']
     },
     password: {
         type: String,
@@ -43,6 +45,16 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Course'
     }],
+    isEmailVerified: {
+        type: Boolean,
+        default: false
+    },
+    isPhoneVerified: {
+        type: Boolean,
+        default: false
+    },
+    otp: String,
+    otpExpire: Date,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
     // OTP fields removed (no teacher OTP flow)

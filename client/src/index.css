@@ -6,9 +6,9 @@
   html {
     scroll-behavior: smooth;
   }
-  
+
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-gray-50 text-gray-900 antialiased transition-colors duration-300;
   }
 }
 
@@ -16,49 +16,49 @@
   .btn {
     @apply px-6 py-3 rounded-xl font-medium transition-all duration-300 inline-flex items-center justify-center gap-2 min-h-[48px];
   }
-  
+
   .btn-primary {
     @apply bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0;
   }
-  
+
   .btn-secondary {
     @apply bg-secondary-500 text-white hover:bg-secondary-600 hover:shadow-lg hover:-translate-y-0.5;
   }
-  
+
   .btn-outline {
     @apply border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white;
   }
-  
+
   .card {
-    @apply bg-white rounded-2xl shadow-soft p-6 transition-all duration-300;
+    @apply bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 transition-all duration-300 border border-transparent dark:border-slate-700;
   }
-  
+
   .card-hover {
     @apply hover:shadow-xl hover:-translate-y-1;
   }
-  
+
   .input {
-    @apply w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200 min-h-[48px];
+    @apply w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900 outline-none transition-all duration-200 min-h-[48px] placeholder-gray-400 dark:placeholder-slate-500;
   }
-  
+
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-2;
+    @apply block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2;
   }
-  
+
   .section {
     @apply py-16 md:py-24;
   }
-  
+
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
-  
+
   .gradient-text {
     @apply bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent;
   }
-  
+
   .glass {
-    @apply bg-white/80 backdrop-blur-lg;
+    @apply bg-white/80 dark:bg-slate-900/90 backdrop-blur-lg;
   }
 }
 
@@ -66,27 +66,43 @@
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
-  
+
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.5s ease-out forwards;
   }
-  
+
   @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
-/* Hide scrollbar but allow scrolling */
+/* ============================================
+   SCROLLBAR
+   ============================================ */
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -96,12 +112,388 @@
   display: none;
 }
 
-/* Low bandwidth mode styles */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ============================================
+   LOW BANDWIDTH
+   ============================================ */
 .low-bandwidth img {
   filter: grayscale(100%);
 }
 
-/* Loading skeleton */
+/* ============================================
+   SKELETON
+   ============================================ */
 .skeleton {
-  @apply bg-gray-200 animate-pulse rounded;
+  @apply bg-gray-200 dark:bg-slate-700 animate-pulse rounded;
+}
+
+/* ============================================
+   DARK MODE — GLOBAL OVERRIDES
+   Classes that aren't using Tailwind dark: variants
+   are covered here by cascading .dark selectors.
+   ============================================ */
+
+/* Body & root */
+.dark body {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+/* ── Backgrounds ─────────────────────────────── */
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-gray-200 {
+  background-color: #334155 !important;
+}
+
+.dark .bg-primary-50 {
+  background-color: rgba(22, 163, 74, 0.12) !important;
+}
+
+.dark .bg-secondary-100 {
+  background-color: rgba(217, 119, 6, 0.12) !important;
+}
+
+.dark .bg-blue-50 {
+  background-color: rgba(30, 58, 138, 0.12) !important;
+}
+
+.dark .bg-yellow-50 {
+  background-color: rgba(120, 68, 0, 0.12) !important;
+}
+
+.dark .bg-red-50 {
+  background-color: rgba(127, 29, 29, 0.12) !important;
+}
+
+.dark .bg-green-50 {
+  background-color: rgba(22, 163, 74, 0.12) !important;
+}
+
+.dark .bg-teal-50 {
+  background-color: rgba(13, 148, 136, 0.12) !important;
+}
+
+.dark .bg-purple-50 {
+  background-color: rgba(88, 28, 135, 0.12) !important;
+}
+
+.dark .bg-orange-50 {
+  background-color: rgba(154, 52, 18, 0.12) !important;
+}
+
+.dark .bg-pink-50 {
+  background-color: rgba(131, 24, 67, 0.12) !important;
+}
+
+.dark .bg-green-100 {
+  background-color: rgba(22, 163, 74, 0.15) !important;
+}
+
+.dark .bg-blue-100 {
+  background-color: rgba(30, 64, 175, 0.15) !important;
+}
+
+.dark .bg-red-100 {
+  background-color: rgba(185, 28, 28, 0.15) !important;
+}
+
+.dark .bg-yellow-100 {
+  background-color: rgba(161, 98, 7, 0.15) !important;
+}
+
+.dark .bg-purple-100 {
+  background-color: rgba(88, 28, 135, 0.15) !important;
+}
+
+.dark .bg-orange-100 {
+  background-color: rgba(154, 52, 18, 0.15) !important;
+}
+
+.dark .bg-primary-100 {
+  background-color: rgba(22, 163, 74, 0.15) !important;
+}
+
+/* Dark page-level backgrounds */
+.dark .bg-gray-900 {
+  background-color: #020617 !important;
+}
+
+.dark .bg-gray-800 {
+  background-color: #0f172a !important;
+}
+
+/* ── Text ────────────────────────────────────── */
+.dark .text-gray-900 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-gray-600 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-500 {
+  color: #64748b !important;
+}
+
+.dark .text-gray-400 {
+  color: #475569 !important;
+}
+
+.dark .text-gray-300 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-200 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-primary-600 {
+  color: #4ade80 !important;
+}
+
+.dark .text-primary-700 {
+  color: #22c55e !important;
+}
+
+.dark .text-primary-800 {
+  color: #16a34a !important;
+}
+
+.dark .text-blue-600 {
+  color: #60a5fa !important;
+}
+
+.dark .text-blue-700 {
+  color: #93c5fd !important;
+}
+
+.dark .text-blue-800 {
+  color: #93c5fd !important;
+}
+
+.dark .text-yellow-600 {
+  color: #fbbf24 !important;
+}
+
+.dark .text-yellow-700 {
+  color: #fcd34d !important;
+}
+
+.dark .text-yellow-800 {
+  color: #fbbf24 !important;
+}
+
+.dark .text-red-600 {
+  color: #f87171 !important;
+}
+
+.dark .text-red-800 {
+  color: #f87171 !important;
+}
+
+.dark .text-green-600 {
+  color: #4ade80 !important;
+}
+
+.dark .text-green-800 {
+  color: #4ade80 !important;
+}
+
+.dark .text-purple-600 {
+  color: #c084fc !important;
+}
+
+.dark .text-purple-700 {
+  color: #a855f7 !important;
+}
+
+.dark .text-purple-800 {
+  color: #c084fc !important;
+}
+
+.dark .text-teal-600 {
+  color: #2dd4bf !important;
+}
+
+.dark .text-orange-600 {
+  color: #fb923c !important;
+}
+
+/* ── Borders ─────────────────────────────────── */
+.dark .border-gray-100 {
+  border-color: #1e293b !important;
+}
+
+.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #475569 !important;
+}
+
+.dark .border-gray-700 {
+  border-color: #334155 !important;
+}
+
+.dark .border-gray-800 {
+  border-color: #1e293b !important;
+}
+
+.dark hr {
+  border-color: #334155 !important;
+}
+
+/* ── Inputs & Forms ──────────────────────────── */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="search"],
+.dark input[type="url"],
+.dark input[type="date"],
+.dark input[type="time"],
+.dark textarea,
+.dark select {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #475569 !important;
+}
+
+.dark input[type="checkbox"] {
+  accent-color: #16a34a;
+}
+
+/* ── Navbar ──────────────────────────────────── */
+.dark nav.glass,
+.dark .glass {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-bottom-color: #1e293b !important;
+}
+
+/* Notification dropdown */
+.dark .absolute.bg-white.rounded-xl.shadow-xl {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* ── Buttons (outline) ───────────────────────── */
+.dark .btn-outline {
+  border-color: #4ade80 !important;
+  color: #4ade80 !important;
+}
+
+.dark .btn-outline:hover {
+  background-color: #16a34a !important;
+  color: white !important;
+}
+
+/* ── Footer ──────────────────────────────────── */
+.dark footer {
+  background-color: #020617 !important;
+  border-top: 1px solid #1e293b;
+}
+
+/* ── Tables ──────────────────────────────────── */
+.dark table {
+  color: #cbd5e1;
+}
+
+.dark thead {
+  background-color: #1e293b !important;
+}
+
+.dark th {
+  color: #94a3b8 !important;
+  border-color: #334155 !important;
+}
+
+.dark td {
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark tr:hover {
+  background-color: #1e293b !important;
+}
+
+/* ── Hover states ────────────────────────────── */
+.dark .hover\:bg-gray-50:hover {
+  background-color: #0f172a !important;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #1e293b !important;
+}
+
+.dark .hover\:bg-gray-200:hover {
+  background-color: #334155 !important;
+}
+
+.dark .hover\:bg-primary-50:hover {
+  background-color: rgba(22, 163, 74, 0.08) !important;
+}
+
+/* ── Modals & Overlays ───────────────────────── */
+.dark .fixed.inset-0.bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* ── Landing Page — Wave SVG ─────────────────── */
+.dark .wave-fill {
+  fill: #0f172a !important;
+}
+
+/* ── Chat bubbles ────────────────────────────── */
+.dark .bg-gray-50\/50 {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+/* ── Section-level backgrounds ───────────────── */
+.dark section {
+  background-color: transparent;
+}
+
+.dark .section {
+  background-color: transparent;
 }

@@ -8,7 +8,9 @@ const {
     deleteCourse,
     enrollCourse,
     getMyCourses,
-    getEnrolledCourses
+    getEnrolledCourses,
+    getRecommendedCourses,
+    downloadCourseMaterials
 } = require('../controllers/courseController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -18,6 +20,7 @@ const { protect, authorize } = require('../middleware/auth');
 // Protected specific routes (must be before /:id)
 router.get('/teacher/my-courses', protect, authorize('teacher', 'admin'), getMyCourses);
 router.get('/student/enrolled', protect, getEnrolledCourses);
+router.get('/student/recommended', protect, getRecommendedCourses);
 
 // Public routes
 router.get('/', getCourses);
@@ -30,5 +33,6 @@ router.get('/:id', getCourse);
 router.put('/:id', protect, authorize('teacher', 'admin'), updateCourse);
 router.delete('/:id', protect, authorize('teacher', 'admin'), deleteCourse);
 router.post('/:id/enroll', protect, enrollCourse);
+router.get('/:id/download-materials', protect, downloadCourseMaterials);
 
 module.exports = router;

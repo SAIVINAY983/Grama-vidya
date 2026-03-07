@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { courseAPI, progressAPI } from '../services/api';
+import { courseAPI, progressAPI, classAPI, authAPI } from '../services/api';
 import CourseCard from '../components/CourseCard';
+import ClassCard from '../components/ClassCard';
 import Loading from '../components/Loading';
 import {
     FiBook,
@@ -11,12 +12,11 @@ import {
     FiClock,
     FiTrendingUp,
     FiAward,
-
+    FiVideo,
     FiBookOpen,
     FiHeart
 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
-import { authAPI } from '../services/api';
 
 const StudentDashboard = () => {
     const { user } = useAuth();
@@ -25,6 +25,7 @@ const StudentDashboard = () => {
     const [allCourses, setAllCourses] = useState([]);
     const [progress, setProgress] = useState([]);
     const [wishlist, setWishlist] = useState([]);
+    const [upcomingClasses, setUpcomingClasses] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -33,17 +34,19 @@ const StudentDashboard = () => {
 
     const fetchData = async () => {
         try {
-            const [enrolledRes, allCoursesRes, progressRes, wishlistRes] = await Promise.all([
+            const [enrolledRes, recommendedRes, progressRes, wishlistRes, classesRes] = await Promise.all([
                 courseAPI.getEnrolled(),
-                courseAPI.getAll(),
+                courseAPI.getRecommended(),
                 progressAPI.getMyProgress(),
-                authAPI.getWishlist()
+                authAPI.getWishlist(),
+                classAPI.getAllStudent()
             ]);
 
             setEnrolledCourses(enrolledRes.data.courses || []);
-            setAllCourses(allCoursesRes.data.courses || []);
+            setAllCourses(recommendedRes.data.courses || []);
             setProgress(progressRes.data.progress || []);
             setWishlist(wishlistRes.data.wishlist || []);
+            setUpcomingClasses(classesRes.data.data || []);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -55,9 +58,7 @@ const StudentDashboard = () => {
     const inProgressLessons = progress.filter(p => p.status === 'in-progress').length;
 
     // Get courses not enrolled in
-    const recommendedCourses = allCourses.filter(
-        course => !enrolledCourses.some(ec => ec._id === course._id)
-    ).slice(0, 3);
+    const recommendedCourses = allCourses;
 
     if (loading) return <Loading text="Loading your dashboard..." />;
 
@@ -100,7 +101,22 @@ const StudentDashboard = () => {
                     </div>
                 </div>
 
-                {/* Video classes removed */}
+                {/* Live Classes */}
+                {upcomingClasses.length > 0 && (
+                    <section className="mb-12">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                <FiVideo className="text-primary-600" />
+                                {t('dashboard.upcomingClasses', 'Upcoming Live Classes')}
+                            </h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {upcomingClasses.map(cls => (
+                                <ClassCard key={cls._id} videoClass={cls} isTeacher={false} />
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* My Courses */}
                 <section className="mb-12">

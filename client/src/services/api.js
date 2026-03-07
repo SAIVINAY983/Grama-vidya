@@ -27,7 +27,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && originalRequest && !originalRequest.url.includes('/auth/login')) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
@@ -44,7 +45,9 @@ export const authAPI = {
     updateProfile: (data) => api.put('/auth/profile', data),
     toggleWishlist: (id) => api.post(`/auth/wishlist/${id}`),
     getWishlist: () => api.get('/auth/wishlist'),
-    forgotPassword: (data) => api.post('/auth/forgot-password', data)
+    forgotPassword: (data) => api.post('/auth/forgot-password', data),
+    verifyEmail: (data) => api.post('/auth/verify-email', data),
+    resendOTP: (data) => api.post('/auth/resend-otp', data)
 };
 
 // Course API
@@ -56,7 +59,9 @@ export const courseAPI = {
     delete: (id) => api.delete(`/courses/${id}`),
     enroll: (id) => api.post(`/courses/${id}/enroll`),
     getMyCourses: () => api.get('/courses/teacher/my-courses'),
-    getEnrolled: () => api.get('/courses/student/enrolled')
+    getEnrolled: () => api.get('/courses/student/enrolled'),
+    getRecommended: () => api.get('/courses/student/recommended'),
+    downloadMaterials: (id) => api.get(`/courses/${id}/download-materials`, { responseType: 'blob' })
 };
 
 // Module API
@@ -137,6 +142,13 @@ export const chatbotAPI = {
     sendMessage: (message) => api.post('/chatbot', { message })
 };
 
-// Class API removed — video classes feature deprecated
+// Class API
+export const classAPI = {
+    getAllTeacher: () => api.get('/classes/teacher'),
+    getAllStudent: () => api.get('/classes/student'),
+    create: (data) => api.post('/classes', data),
+    update: (id, data) => api.put(`/classes/${id}`, data),
+    delete: (id) => api.delete(`/classes/${id}`)
+};
 
 export default api;

@@ -18,12 +18,12 @@ const courseSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['mathematics', 'science', 'language', 'social-studies', 'computer', 'life-skills', 'other'],
+        enum: ['academic', 'programming', 'farming', 'finance', 'health', 'mathematics', 'science', 'language', 'social-studies', 'computer', 'life-skills', 'other'],
         default: 'other'
     },
     language: {
         type: String,
-        enum: ['english', 'hindi', 'regional'],
+        enum: ['english', 'hindi', 'kannada', 'telugu', 'tamil', 'regional'],
         default: 'english'
     },
     difficulty: {

@@ -5,7 +5,9 @@ import Footer from './components/Footer';
 import Loading from './components/Loading';
 import { Toaster } from 'react-hot-toast';
 import { ChatProvider } from './context/ChatContext';
+import { SettingsProvider } from './context/SettingsContext';
 import ChatWidget from './components/ChatWidget';
+import OfflineIndicator from './components/OfflineIndicator';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -65,6 +67,7 @@ const Layout = ({ children, hideFooter = false }) => {
     return (
         <div className="min-h-screen flex flex-col">
             <Navbar />
+            <OfflineIndicator />
             <main className="flex-1">
                 {children}
             </main>
@@ -129,11 +132,13 @@ function App() {
     return (
         <Router>
             <AuthProvider>
-                <ChatProvider>
-                    <Toaster position="top-center" reverseOrder={false} />
-                    <AppRoutes />
-                    <ChatWidget />
-                </ChatProvider>
+                <SettingsProvider>
+                    <ChatProvider>
+                        <Toaster position="top-center" reverseOrder={false} />
+                        <AppRoutes />
+                        <ChatWidget />
+                    </ChatProvider>
+                </SettingsProvider>
             </AuthProvider>
         </Router>
     );

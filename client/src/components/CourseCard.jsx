@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { FiClock, FiUsers, FiBookOpen, FiPlay, FiStar, FiHeart } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
+import { useSettings } from '../context/SettingsContext';
 import toast from 'react-hot-toast';
 
 const CourseCard = ({ course }) => {
@@ -21,10 +22,16 @@ const CourseCard = ({ course }) => {
     } = course;
 
     const { user, isAuthenticated } = useAuth();
+    const { lowDataMode } = useSettings();
     const isWishlisted = user?.wishlist?.includes(_id);
 
     const getCategoryColor = (cat) => {
         const colors = {
+            academic: 'bg-blue-100 text-blue-700',
+            programming: 'bg-purple-100 text-purple-700',
+            farming: 'bg-green-100 text-green-700',
+            finance: 'bg-yellow-100 text-yellow-700',
+            health: 'bg-pink-100 text-pink-700',
             mathematics: 'bg-blue-100 text-blue-700',
             science: 'bg-purple-100 text-purple-700',
             language: 'bg-green-100 text-green-700',
@@ -64,7 +71,7 @@ const CourseCard = ({ course }) => {
         <Link to={`/courses/${_id}`} className="card card-hover block group">
             {/* Thumbnail */}
             <div className="relative aspect-video rounded-xl overflow-hidden mb-4 bg-gray-100">
-                {thumbnail && thumbnail !== '/images/default-course.jpg' ? (
+                {!lowDataMode && thumbnail && thumbnail !== '/images/default-course.jpg' ? (
                     <img
                         src={thumbnail}
                         alt={title}
@@ -72,8 +79,11 @@ const CourseCard = ({ course }) => {
                         loading="lazy"
                     />
                 ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary-400 to-secondary-500 flex items-center justify-center">
-                        <FiBookOpen className="text-white/80" size={48} />
+                    <div className={`w-full h-full bg-gradient-to-br from-primary-400 to-secondary-500 flex flex-col items-center justify-center p-4 text-center ${lowDataMode ? 'bg-gradient-to-br from-primary-600 to-secondary-700' : ''}`}>
+                        <FiBookOpen className="text-white/80 mb-2" size={lowDataMode ? 32 : 48} />
+                        {lowDataMode && (
+                            <span className="text-white/90 text-xs font-bold uppercase tracking-wider">Lite Mode: Image Paused</span>
+                        )}
                     </div>
                 )}
 

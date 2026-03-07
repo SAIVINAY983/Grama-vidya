@@ -206,6 +206,29 @@ exports.getMyCourses = async (req, res) => {
     }
 };
 
+// @desc    Get recommended courses for student
+// @route   GET /api/courses/recommended
+// @access  Private (Student)
+exports.getRecommendedCourses = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        // Get courses not enrolled in, published, limit 3
+        const courses = await Course.find({
+            _id: { $nin: user.enrolledCourses },
+            isPublished: true
+        })
+            .select('title description thumbnail category difficulty rating price')
+            .populate('teacher', 'name')
+            .limit(3);
+
+        res.json({ success: true, courses });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 // @desc    Get enrolled courses for student
 // @route   GET /api/courses/enrolled
 // @access  Private (Student)
@@ -222,3 +245,85 @@ exports.getEnrolledCourses = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+// @desc    Download all PDF materials for a course as a ZIP
+// @route   GET /api/courses/:id/download-materials
+// @access  Private (Enrolled Student / Teacher / Admin)
+exports.downloadCourseMaterials = async (req, res) => {
+    try {
+        const archiver = require('archiver');
+        const path = require('path');
+        const fs = require('fs');
+
+        const courseId = req.params.id;
+
+        // Fetch course with modules and lessons
+        const course = await Course.findById(courseId).populate({
+            path: 'modules',
+            populate: { path: 'lessons' }
+        });
+
+        if (!course) {
+            return res.status(404).json({ success: false, message: 'Course not found' });
+        }
+
+        // Check access: enrolled student, teacher, or admin
+        const isEnrolled = course.enrolledStudents.some(
+            s => s.toString() === req.user.id
+        );
+        const isTeacherOrAdmin = req.user.role === 'teacher' || req.user.role === 'admin';
+
+        if (!isEnrolled && !isTeacherOrAdmin) {
+            return res.status(403).json({ success: false, message: 'Enroll in the course to download materials' });
+        }
+
+        // Collect all PDFs from lessons
+        const uploadDir = path.join(__dirname, '..', 'uploads');
+        const pdfFiles = [];
+
+        for (const module of course.modules || []) {
+            for (const lesson of module.lessons || []) {
+                if (lesson.pdfUrl) {
+                    // pdfUrl is like /uploads/pdf-filename.pdf
+                    const filename = path.basename(lesson.pdfUrl);
+                    const filePath = path.join(uploadDir, filename);
+                    if (fs.existsSync(filePath)) {
+                        pdfFiles.push({
+                            path: filePath,
+                            name: `${module.title}/${lesson.title}.pdf`
+                        });
+                    }
+                }
+            }
+        }
+
+        if (pdfFiles.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No downloadable PDF materials found for this course'
+            });
+        }
+
+        // Set response headers for ZIP download
+        const safeName = course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${safeName}_materials.zip"`);
+
+        // Create and stream ZIP
+        const archive = archiver('zip', { zlib: { level: 6 } });
+        archive.on('error', (err) => { throw err; });
+        archive.pipe(res);
+
+        for (const file of pdfFiles) {
+            archive.file(file.path, { name: file.name });
+        }
+
+        await archive.finalize();
+    } catch (error) {
+        console.error('Error creating ZIP:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ success: false, message: 'Failed to create download package' });
+        }
+    }
+};
+
