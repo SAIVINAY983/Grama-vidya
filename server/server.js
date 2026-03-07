@@ -42,7 +42,8 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
     process.env.CLIENT_URL,
-    'https://gram-vidya.vercel.app'
+    'https://gram-vidya.vercel.app',
+    'https://grama-vidya.vercel.app'
 ].filter(Boolean);
 
 app.use(cors({
