@@ -34,7 +34,7 @@ const chatbotController = {
 
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.5-flash",
                 systemInstruction: "You are the Gram Vidya AI Learning Assistant. Your goal is to help students from rural areas in India with their studies. Use simple, clear, and encouraging language. If a student asks in a regional language, reply in that language if possible, otherwise explain simply in English. Focus on being a helpful tutor for school and vocational subjects. Keep responses concise and easy to understand."
             });
 
