@@ -326,22 +326,6 @@ const LoginPage = () => {
                         </div>
                     )}
 
-                    {/* Demo Credentials */}
-                    <div className="mt-6 card bg-gray-50 border border-gray-200">
-                        <p className="text-sm text-gray-500 mb-3 font-medium">Demo Accounts (Click to fill):</p>
-                        <div className="space-y-2">
-                            {demoCredentials.map((demo) => (
-                                <button
-                                    key={demo.role}
-                                    onClick={() => handleDemoLogin(demo.email, demo.password)}
-                                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-white transition-colors text-sm"
-                                >
-                                    <span className="font-medium text-gray-700">{demo.role}:</span>{' '}
-                                    <span className="text-gray-500">{demo.email}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
