@@ -18,7 +18,8 @@ import {
     FiHelpCircle,
     FiHeart,
     FiPackage,
-    FiWifi
+    FiWifi,
+    FiZap
 } from 'react-icons/fi';
 import ReviewSection from '../components/ReviewSection';
 import { authAPI } from '../services/api';
